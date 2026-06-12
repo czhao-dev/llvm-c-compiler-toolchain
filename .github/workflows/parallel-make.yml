@@ -1,0 +1,34 @@
+name: parallel-make CI
+
+on:
+  push:
+    paths:
+      - "parallel-make/**"
+      - ".github/workflows/parallel-make.yml"
+  pull_request:
+    paths:
+      - "parallel-make/**"
+      - ".github/workflows/parallel-make.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: parallel-make
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Format check
+        run: cargo fmt -- --check
+      - name: Clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+      - name: Tests
+        run: cargo test
+      - name: Smoke test
+        run: |
+          code=0
+          cargo run --bin parallel-make -- -j4 || code=$?
+          [ "$code" -le 1 ]
