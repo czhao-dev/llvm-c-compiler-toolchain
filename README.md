@@ -3,7 +3,7 @@
 [![build-tool CI](https://github.com/czhao-dev/c-llvm-toolchain/actions/workflows/build-tool.yml/badge.svg)](https://github.com/czhao-dev/c-llvm-toolchain/actions/workflows/build-tool.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-A small C toolchain built from scratch, one piece at a time: a preprocessor, a compiler, a static analyzer, and a parallel build tool.
+A small C toolchain built from scratch, one piece at a time: a preprocessor, a compiler, a static analyzer, a style linter, and a parallel build tool.
 
 Each subproject is independent and self-contained — its own language, build system, tests, and README — but together they cover the path from source code to a finished build: check the code, compile it, build it.
 
@@ -16,6 +16,7 @@ Each subproject is independent and self-contained — its own language, build sy
 | [c-preprocessor](c-preprocessor) | C++17 | A minimal C preprocessor: `#include` file inclusion, object-like `#define`/`#undef` macros with hide-set-safe recursive expansion, and `//`/`/* */` comment stripping. Function-like macros, conditional compilation, and `##`/`#` are explicit non-goals — each is a hard error rather than a silent no-op. |
 | [c-compiler-llvm](c-compiler-llvm) | C++17 / LLVM | **MiniC** — a compiler for a statically-typed subset of C. Hand-written lexer, recursive-descent parser, semantic analyzer, and LLVM IR codegen producing native binaries, cross-validated against clang. |
 | [c-static-analyzer](c-static-analyzer) | Rust | A lightweight static analyzer for C code. Parses `.c`/`.h` files with tree-sitter (no compilation needed) and reports diagnostics for complexity, unused variables, nesting depth, missing returns, and unreachable code. |
+| [c-linter](c-linter) | C++17 | A style/formatting linter for C: snake_case naming, line length (80 cols) and trailing whitespace, magic-number detection in comparisons, and K&R/Allman brace-style consistency. Reporting only — no auto-fixing, and no semantic checks (that's c-static-analyzer's job). |
 | [build-tool](build-tool) | Rust | A parallel, dependency-graph-aware build tool that follows standard make semantics. Resolves a Makefile into a DAG, checks mtime-based staleness, and executes recipes in parallel via a vendored work-stealing thread pool. |
 
 ## Highlights
@@ -25,6 +26,8 @@ Each subproject is independent and self-contained — its own language, build sy
 **MiniC compiler** — A complete four-stage pipeline (lexer → recursive-descent parser → semantic analyzer → LLVM IR generator) compiled into `libminic_core.a` behind a thin CLI. All five test suites pass, and all nine example programs produce byte-for-byte identical output to `clang` on the same source. `-O1`/`-O2`/`-O3` run LLVM's real optimization pipeline (`mem2reg`, `instcombine`, `tailcallelim`, loop unrolling); `-O2` gets `fibonacci(40)` to a measured 1.4× speedup over `-O0`.
 
 **C static analyzer** — Five rules (`SA001`–`SA005`) covering cyclomatic complexity, unused variables, nesting depth, missing returns, and unreachable code, built on tree-sitter so no compilation step is required. 44 tests pass — 36 unit tests plus 8 integration tests including a byte-for-byte golden-output comparison. Ships as a single self-contained binary with a CI-friendly non-zero exit code on findings.
+
+**c-linter** — Five rules (`CL001`–`CL005`) covering snake_case naming, line length, trailing whitespace, magic numbers in comparisons, and K&R/Allman brace-style consistency, built on a small hand-written lexer that's deliberately never shared with `c-compiler-llvm`, keeping the subproject independent per this repo's convention. The lexer is tolerant by design — unterminated comments/literals and unmodeled punctuation never cause an error, since a linter has to process real-world C it doesn't fully model. All 7 test suites pass. Reporting only, with a CI-friendly non-zero exit code on findings.
 
 **build-tool** — Parses a Makefile into rules, resolves them into a dependency DAG with cycle detection and memoization, skips up-to-date targets via mtime staleness, and runs outstanding recipes through a three-priority-level work-stealing thread pool vendored from a companion project. Supports `-j N` parallelism and `-k`/`--keep-going`. 22 tests pass, and it's the only subproject with CI wired up so far (path-scoped GitHub Actions workflow, gated on `cargo fmt`, `clippy`, and `cargo test`).
 
@@ -44,6 +47,10 @@ ctest --test-dir build --output-on-failure
 # C static analyzer (Rust)
 cd c-static-analyzer && cargo build --release && cargo test
 
+# c-linter (C++17/CMake, no external dependencies)
+cd c-linter && ./scripts/configure.sh && cmake --build build
+ctest --test-dir build --output-on-failure
+
 # build-tool (Rust)
 cd build-tool && cargo build --release && cargo test
 ```
@@ -53,8 +60,9 @@ cd build-tool && cargo build --release && cargo test
 Each subproject cites the sources specific to its own stage of the pipeline
 in its own README — see
 [c-preprocessor](c-preprocessor/README.md#references),
-[c-compiler-llvm](c-compiler-llvm/README.md#references), and
-[c-static-analyzer](c-static-analyzer/README.md#references). At the
+[c-compiler-llvm](c-compiler-llvm/README.md#references),
+[c-static-analyzer](c-static-analyzer/README.md#references), and
+[c-linter](c-linter/README.md#references). At the
 toolchain level:
 
 - ISO/IEC 9899:2018. *Programming Languages — C* (C17 standard) — the
