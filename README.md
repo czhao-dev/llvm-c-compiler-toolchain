@@ -3,7 +3,7 @@
 [![build-tool CI](https://github.com/czhao-dev/c-llvm-toolchain/actions/workflows/build-tool.yml/badge.svg)](https://github.com/czhao-dev/c-llvm-toolchain/actions/workflows/build-tool.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-A small C toolchain built from scratch, one piece at a time: a preprocessor, a compiler, a static analyzer, a style linter, and a parallel build tool.
+A small C toolchain built from scratch, one piece at a time: a preprocessor, a compiler, a static analyzer, a style linter, and a build tool.
 
 Each subproject is independent and self-contained — its own language, build system, tests, and README — but together they cover the path from source code to a finished build: check the code, compile it, build it.
 
@@ -17,7 +17,7 @@ Each subproject is independent and self-contained — its own language, build sy
 | [c-compiler-llvm](c-compiler-llvm) | C++17 / LLVM | **MiniC** — a compiler for a statically-typed subset of C. Hand-written lexer, recursive-descent parser, semantic analyzer, and LLVM IR codegen producing native binaries, cross-validated against clang. |
 | [c-static-analyzer](c-static-analyzer) | Rust | A lightweight static analyzer for C code. Parses `.c`/`.h` files with tree-sitter (no compilation needed) and reports diagnostics for complexity, unused variables, nesting depth, missing returns, and unreachable code. |
 | [c-linter](c-linter) | C++17 | A style/formatting linter for C: snake_case naming, line length (80 cols) and trailing whitespace, magic-number detection in comparisons, and K&R/Allman brace-style consistency. Reporting only — no auto-fixing, and no semantic checks (that's c-static-analyzer's job). |
-| [build-tool](build-tool) | Rust | A parallel, dependency-graph-aware build tool that follows standard make semantics. Resolves a Makefile into a DAG, checks mtime-based staleness, and executes recipes in parallel via a vendored work-stealing thread pool. |
+| [build-tool](build-tool) | C++17 | A dependency-graph-aware build tool implementing core GNU Make semantics. Resolves a Makefile into a topologically-ordered plan, checks mtime-based staleness, and executes recipes serially with cycle detection and `-k`/`--keep-going` support. |
 
 ## Highlights
 
@@ -29,7 +29,7 @@ Each subproject is independent and self-contained — its own language, build sy
 
 **c-linter** — Five rules (`CL001`–`CL005`) covering snake_case naming, line length, trailing whitespace, magic numbers in comparisons, and K&R/Allman brace-style consistency, built on a small hand-written lexer that's deliberately never shared with `c-compiler-llvm`, keeping the subproject independent per this repo's convention. The lexer is tolerant by design — unterminated comments/literals and unmodeled punctuation never cause an error, since a linter has to process real-world C it doesn't fully model. All 7 test suites pass. Reporting only, with a CI-friendly non-zero exit code on findings.
 
-**build-tool** — Parses a Makefile into rules, resolves them into a dependency DAG with cycle detection and memoization, skips up-to-date targets via mtime staleness, and runs outstanding recipes through a three-priority-level work-stealing thread pool vendored from a companion project. Supports `-j N` parallelism and `-k`/`--keep-going`. 22 tests pass, and it's the only subproject with CI wired up so far (path-scoped GitHub Actions workflow, gated on `cargo fmt`, `clippy`, and `cargo test`).
+**build-tool** — Parses a Makefile into rules, resolves them into a dependency graph with cycle detection and memoization (a shared prerequisite builds exactly once), skips up-to-date targets via mtime staleness, and runs outstanding recipes serially in topological order with `-k`/`--keep-going` support. `-j` parallelism is a deliberate non-goal: it only affects wall-clock build speed, not correctness, so this small tool trades it for a much simpler single-threaded executor. 22 tests pass, and it's the only subproject with CI wired up so far (path-scoped GitHub Actions workflow, gated on a CMake build and `ctest`).
 
 ## Getting Started
 
@@ -51,8 +51,9 @@ cd c-static-analyzer && cargo build --release && cargo test
 cd c-linter && ./scripts/configure.sh && cmake --build build
 ctest --test-dir build --output-on-failure
 
-# build-tool (Rust)
-cd build-tool && cargo build --release && cargo test
+# build-tool (C++17/CMake, no external dependencies)
+cd build-tool && ./scripts/configure.sh && cmake --build build
+ctest --test-dir build --output-on-failure
 ```
 
 ## References
