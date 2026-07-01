@@ -1,0 +1,18 @@
+[package]
+name = "build-tool"
+version = "0.1.0"
+edition = "2021"
+description = "A parallel, dependency-graph-aware build tool following standard make semantics, built on a vendored work-stealing scheduler."
+license = "MIT"
+readme = "README.md"
+
+[[bin]]
+name = "build-tool"
+path = "src/bin/build_tool.rs"
+
+[lib]
+name = "build_tool"
+path = "src/lib.rs"
+
+[dependencies]
+crossbeam-deque = "0.8"

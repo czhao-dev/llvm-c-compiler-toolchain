@@ -1,4 +1,4 @@
-use parallel_make::makefile::{self, ParseError};
+use build_tool::makefile::{self, ParseError};
 
 #[test]
 fn parses_a_simple_rule() {
@@ -73,7 +73,7 @@ fn discover_finds_a_makefile() {
     // macOS) this also satisfies the "Makefile" lookup, so we only assert
     // discovery succeeds, not which exact casing matched.
     let dir = std::env::temp_dir().join(format!(
-        "parallel-make-parser-test-{}-{}",
+        "build-tool-parser-test-{}-{}",
         std::process::id(),
         line!()
     ));
@@ -89,7 +89,7 @@ fn discover_finds_a_makefile() {
 #[test]
 fn discover_returns_none_when_absent() {
     let dir = std::env::temp_dir().join(format!(
-        "parallel-make-parser-test-empty-{}-{}",
+        "build-tool-parser-test-empty-{}-{}",
         std::process::id(),
         line!()
     ));

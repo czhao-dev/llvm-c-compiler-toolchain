@@ -1,4 +1,4 @@
-//! Hand-rolled command-line parsing for the `parallel-make` binary: just
+//! Hand-rolled command-line parsing for the `build-tool` binary: just
 //! enough flags for the "Core" feature set (`-j`, `-k`, target names). `-n`
 //! and `-f` are recognized only so they can be rejected with a clear "not yet
 //! supported" message instead of being silently misread as target names.
@@ -34,7 +34,7 @@ impl fmt::Display for CliError {
 impl std::error::Error for CliError {}
 
 /// Parses CLI arguments (excluding `argv[0]`). Default `jobs` is `1`,
-/// matching GNU make's serial-unless-told-otherwise default.
+/// matching make's serial-unless-told-otherwise default.
 pub fn parse(args: impl IntoIterator<Item = String>) -> Result<Args, CliError> {
     let mut targets = Vec::new();
     let mut jobs = 1usize;

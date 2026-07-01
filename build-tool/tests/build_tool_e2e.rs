@@ -2,17 +2,17 @@ use std::process::Command;
 use std::time::Duration;
 
 fn scratch_dir(tag: &str) -> std::path::PathBuf {
-    let dir = std::env::temp_dir().join(format!("parallel-make-e2e-{tag}-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("build-tool-e2e-{tag}-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).unwrap();
     dir
 }
 
-fn run_parallel_make(dir: &std::path::Path) -> std::process::Output {
-    Command::new(env!("CARGO_BIN_EXE_parallel-make"))
+fn run_build_tool(dir: &std::path::Path) -> std::process::Output {
+    Command::new(env!("CARGO_BIN_EXE_build-tool"))
         .current_dir(dir)
         .output()
-        .expect("failed to run parallel-make binary")
+        .expect("failed to run build-tool binary")
 }
 
 #[test]
@@ -31,7 +31,7 @@ fn diamond_build_skips_recipes_when_up_to_date_then_rebuilds_after_touch() {
     )
     .unwrap();
 
-    let first = run_parallel_make(&dir);
+    let first = run_build_tool(&dir);
     assert!(
         first.status.success(),
         "first run failed: {}",
@@ -46,7 +46,7 @@ fn diamond_build_skips_recipes_when_up_to_date_then_rebuilds_after_touch() {
         "both recipes should run once: {log}"
     );
 
-    let second = run_parallel_make(&dir);
+    let second = run_build_tool(&dir);
     assert!(second.status.success());
     let log = std::fs::read_to_string(dir.join("build.log")).unwrap();
     assert_eq!(
@@ -58,7 +58,7 @@ fn diamond_build_skips_recipes_when_up_to_date_then_rebuilds_after_touch() {
     std::thread::sleep(Duration::from_millis(1100));
     std::fs::write(dir.join("common.h"), "shared header v2").unwrap();
 
-    let third = run_parallel_make(&dir);
+    let third = run_build_tool(&dir);
     assert!(third.status.success());
     let log = std::fs::read_to_string(dir.join("build.log")).unwrap();
     assert_eq!(
@@ -75,7 +75,7 @@ fn failing_recipe_exits_with_failure_status() {
     let dir = scratch_dir("failure");
     std::fs::write(dir.join("Makefile"), "all:\n\tfalse\n").unwrap();
 
-    let output = run_parallel_make(&dir);
+    let output = run_build_tool(&dir);
     assert!(!output.status.success());
     assert_eq!(output.status.code(), Some(1));
 
@@ -86,7 +86,7 @@ fn failing_recipe_exits_with_failure_status() {
 fn missing_makefile_exits_with_usage_error() {
     let dir = scratch_dir("missing");
 
-    let output = run_parallel_make(&dir);
+    let output = run_build_tool(&dir);
     assert!(!output.status.success());
     assert_eq!(output.status.code(), Some(2));
 

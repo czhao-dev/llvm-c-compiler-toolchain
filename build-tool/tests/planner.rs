@@ -1,14 +1,11 @@
 use std::time::Duration;
 
-use parallel_make::makefile::{ParsedMakefile, Rule};
-use parallel_make::planner::{self, BuildStatus, PlanError};
-use parallel_make::{run_graph, Runtime};
+use build_tool::makefile::{ParsedMakefile, Rule};
+use build_tool::planner::{self, BuildStatus, PlanError};
+use build_tool::{run_graph, Runtime};
 
 fn scratch_dir(tag: &str) -> std::path::PathBuf {
-    let dir = std::env::temp_dir().join(format!(
-        "parallel-make-planner-{tag}-{}",
-        std::process::id()
-    ));
+    let dir = std::env::temp_dir().join(format!("build-tool-planner-{tag}-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).unwrap();
     dir
@@ -111,8 +108,8 @@ fn missing_rule_and_file_is_an_error() {
 fn describe(
     result: Result<
         (
-            parallel_make::engine::TaskGraph,
-            Vec<parallel_make::engine::NodeId>,
+            build_tool::engine::TaskGraph,
+            Vec<build_tool::engine::NodeId>,
         ),
         PlanError,
     >,

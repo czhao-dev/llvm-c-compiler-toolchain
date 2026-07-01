@@ -1,8 +1,8 @@
-# parallel-make
+# build-tool
 
-[![CI](https://github.com/czhao-dev/c-llvm-toolchain/actions/workflows/parallel-make.yml/badge.svg)](https://github.com/czhao-dev/c-llvm-toolchain/actions/workflows/parallel-make.yml)
+[![CI](https://github.com/czhao-dev/c-llvm-toolchain/actions/workflows/build-tool.yml/badge.svg)](https://github.com/czhao-dev/c-llvm-toolchain/actions/workflows/build-tool.yml)
 
-A parallel, dependency-graph-aware build tool that follows GNU Make's documented semantics — built from scratch in Rust as the third piece of a C toolchain alongside a [MiniC compiler](../c-compiler-llvm) and a [C static analyzer](../c-static-analyzer).
+A parallel, dependency-graph-aware build tool that follows standard make semantics — built from scratch in Rust as the third piece of a C toolchain alongside a [MiniC compiler](../c-compiler-llvm) and a [C static analyzer](../c-static-analyzer).
 
 It parses a Makefile into target/prerequisite rules, resolves them into a DAG (with cycle detection and memoization so a shared dependency is built exactly once), checks mtime-based staleness to skip up-to-date targets, and executes outstanding recipes in parallel through a vendored work-stealing thread pool.
 
@@ -40,10 +40,10 @@ Makefile text
   └─ handle.rs / cancellation.rs ── panic-safe JoinHandle, cancellation tokens
      │
      ▼
-  parallel-make binary ── shell recipes run via sh -c, exit codes propagated
+  build-tool binary ── shell recipes run via sh -c, exit codes propagated
 ```
 
-The engine layer is a full from-scratch work-stealing thread pool (three priority levels: High/Normal/Background) vendored from the companion project [work-stealing-thread-pool](https://github.com/czhao-dev/work-stealing-thread-pool). It is copied directly into `src/engine/` so `parallel-make` is a fully self-contained crate with no git dependencies.
+The engine layer is a full from-scratch work-stealing thread pool (three priority levels: High/Normal/Background) vendored from the companion project [work-stealing-thread-pool](https://github.com/czhao-dev/work-stealing-thread-pool). It is copied directly into `src/engine/` so `build-tool` is a fully self-contained crate with no git dependencies.
 
 ---
 
@@ -76,7 +76,7 @@ The engine layer is a full from-scratch work-stealing thread pool (three priorit
 cargo build --release
 
 # Run in the directory containing your Makefile
-./target/release/parallel-make -j4
+./target/release/build-tool -j4
 ```
 
 Example `Makefile`:
@@ -101,7 +101,7 @@ utils.o: utils.c common.h
 ## Usage
 
 ```
-parallel-make [-j N] [-k] [target ...]
+build-tool [-j N] [-k] [target ...]
 ```
 
 | Flag | Default | Description |
@@ -123,7 +123,7 @@ parallel-make [-j N] [-k] [target ...]
 ## Project Structure
 
 ```text
-parallel-make/
+build-tool/
 ├── Cargo.toml
 ├── src/
 │   ├── lib.rs                     # crate root; re-exports run_graph, Runtime
@@ -131,7 +131,7 @@ parallel-make/
 │   ├── makefile.rs                # Makefile lexer/parser, .PHONY, discover()
 │   ├── planner.rs                 # rules → TaskGraph, mtime staleness, fail-fast/-k
 │   ├── bin/
-│   │   └── parallel_make.rs      # binary entry point
+│   │   └── build_tool.rs         # binary entry point
 │   └── engine/                   # vendored work-stealing engine + DAG scheduler
 │       ├── mod.rs                # re-exports all public engine types
 │       ├── runtime.rs            # Runtime API, shutdown, metrics wiring
@@ -146,7 +146,7 @@ parallel-make/
 └── tests/
     ├── makefile_parser.rs        # 11 tests: parsing, .PHONY, discover
     ├── planner.rs                # 8 tests: diamond, cycle detection, staleness
-    └── parallel_make_e2e.rs     # 3 tests: end-to-end binary invocations
+    └── build_tool_e2e.rs         # 3 tests: end-to-end binary invocations
 ```
 
 ---
@@ -157,7 +157,7 @@ parallel-make/
 
 - **`makefile_parser.rs`** (11 tests) — rule parsing, `.PHONY` declarations (before and after the rule), inline comment stripping, default goal resolution, error cases (orphan recipe line, header without colon), and `discover()` finding or not finding a Makefile on disk.
 - **`planner.rs`** (8 tests) — diamond dependency built exactly once, cycle detection, missing target error, existing file treated as a leaf, mtime staleness (up-to-date target skipped), phony target rebuilt even when newer, empty-recipe phony target, failed prerequisite causes dependent to be skipped.
-- **`parallel_make_e2e.rs`** (3 tests) — full binary invocations: diamond build runs recipes once then skips them on a clean re-run and rebuilds both after a `touch`; a failing recipe returns exit code 1; a missing Makefile returns exit code 2.
+- **`build_tool_e2e.rs`** (3 tests) — full binary invocations: diamond build runs recipes once then skips them on a clean re-run and rebuilds both after a `touch`; a failing recipe returns exit code 1; a missing Makefile returns exit code 2.
 
 ```bash
 cargo test                         # run all 22 tests

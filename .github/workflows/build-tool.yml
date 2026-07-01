@@ -1,21 +1,21 @@
-name: parallel-make CI
+name: build-tool CI
 
 on:
   push:
     paths:
-      - "parallel-make/**"
-      - ".github/workflows/parallel-make.yml"
+      - "build-tool/**"
+      - ".github/workflows/build-tool.yml"
   pull_request:
     paths:
-      - "parallel-make/**"
-      - ".github/workflows/parallel-make.yml"
+      - "build-tool/**"
+      - ".github/workflows/build-tool.yml"
 
 jobs:
   test:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: parallel-make
+        working-directory: build-tool
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -29,8 +29,8 @@ jobs:
         run: cargo test
       - name: Smoke test
         run: |
-          cargo build --bin parallel-make
-          bin="$PWD/target/debug/parallel-make"
+          cargo build --bin build-tool
+          bin="$PWD/target/debug/build-tool"
           workdir=$(mktemp -d)
           printf 'all:\n\techo smoke test ok\n' > "$workdir/Makefile"
           cd "$workdir"
