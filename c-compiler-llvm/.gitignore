@@ -1,0 +1,20 @@
+build/
+cmake-build-*/
+.cache/
+.DS_Store
+
+# Native compiler outputs
+*.o
+*.obj
+*.a
+*.so
+*.dylib
+*.exe
+a.out
+
+# MiniC generated outputs
+*.ll
+*.bc
+
+# Personal project notes
+docs/ROADMAP.md
