@@ -15,7 +15,7 @@ Each subproject is independent and self-contained — its own language, build sy
 |---|---|---|
 | [c-preprocessor](c-preprocessor) | C++17 | A minimal C preprocessor: `#include` file inclusion, object-like `#define`/`#undef` macros with hide-set-safe recursive expansion, and `//`/`/* */` comment stripping. Function-like macros, conditional compilation, and `##`/`#` are explicit non-goals — each is a hard error rather than a silent no-op. |
 | [c-compiler-llvm](c-compiler-llvm) | C++17 / LLVM | **MiniC** — a compiler for a statically-typed subset of C. Hand-written lexer, recursive-descent parser, semantic analyzer, and LLVM IR codegen producing native binaries, cross-validated against clang. |
-| [c-static-analyzer](c-static-analyzer) | Rust | A lightweight static analyzer for C code. Parses `.c`/`.h` files with tree-sitter (no compilation needed) and reports diagnostics for complexity, unused variables, nesting depth, missing returns, and unreachable code. |
+| [c-static-analyzer](c-static-analyzer) | C++17 | A lightweight static analyzer for C code. Parses `.c`/`.h` files with tree-sitter (no compilation needed) and reports diagnostics for complexity, unused variables, nesting depth, missing returns, and unreachable code. |
 | [c-linter](c-linter) | C++17 | A style/formatting linter for C: snake_case naming, line length (80 cols) and trailing whitespace, magic-number detection in comparisons, and K&R/Allman brace-style consistency. Reporting only — no auto-fixing, and no semantic checks (that's c-static-analyzer's job). |
 | [build-tool](build-tool) | C++17 | A dependency-graph-aware build tool implementing core GNU Make semantics. Resolves a Makefile into a topologically-ordered plan, checks mtime-based staleness, and executes recipes serially with cycle detection and `-k`/`--keep-going` support. |
 
@@ -25,7 +25,7 @@ Each subproject is independent and self-contained — its own language, build sy
 
 **MiniC compiler** — A complete four-stage pipeline (lexer → recursive-descent parser → semantic analyzer → LLVM IR generator) compiled into `libminic_core.a` behind a thin CLI. All five test suites pass, and all nine example programs produce byte-for-byte identical output to `clang` on the same source. `-O1`/`-O2`/`-O3` run LLVM's real optimization pipeline (`mem2reg`, `instcombine`, `tailcallelim`, loop unrolling); `-O2` gets `fibonacci(40)` to a measured 1.4× speedup over `-O0`.
 
-**C static analyzer** — Five rules (`SA001`–`SA005`) covering cyclomatic complexity, unused variables, nesting depth, missing returns, and unreachable code, built on tree-sitter so no compilation step is required. 44 tests pass — 36 unit tests plus 8 integration tests including a byte-for-byte golden-output comparison. Ships as a single self-contained binary with a CI-friendly non-zero exit code on findings.
+**C static analyzer** — Five rules (`SA001`–`SA005`) covering cyclomatic complexity, unused variables, nesting depth, missing returns, and unreachable code, built directly against tree-sitter's C API and the `tree-sitter-c` grammar (fetched via CMake `FetchContent` and compiled as plain C static libraries — the only subproject with an external dependency). 10 test suites pass, including a byte-for-byte golden-output comparison. Ships as a single self-contained binary with a CI-friendly non-zero exit code on findings.
 
 **c-linter** — Five rules (`CL001`–`CL005`) covering snake_case naming, line length, trailing whitespace, magic numbers in comparisons, and K&R/Allman brace-style consistency, built on a small hand-written lexer that's deliberately never shared with `c-compiler-llvm`, keeping the subproject independent per this repo's convention. The lexer is tolerant by design — unterminated comments/literals and unmodeled punctuation never cause an error, since a linter has to process real-world C it doesn't fully model. All 7 test suites pass. Reporting only, with a CI-friendly non-zero exit code on findings.
 
@@ -44,8 +44,9 @@ ctest --test-dir build --output-on-failure
 cd c-compiler-llvm && ./scripts/configure.sh && cmake --build build
 ctest --test-dir build --output-on-failure
 
-# C static analyzer (Rust)
-cd c-static-analyzer && cargo build --release && cargo test
+# C static analyzer (C++17/CMake, fetches tree-sitter + tree-sitter-c via FetchContent)
+cd c-static-analyzer && ./scripts/configure.sh && cmake --build build
+ctest --test-dir build --output-on-failure
 
 # c-linter (C++17/CMake, no external dependencies)
 cd c-linter && ./scripts/configure.sh && cmake --build build
