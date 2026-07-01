@@ -1,0 +1,18 @@
+[package]
+name = "parallel-make"
+version = "0.1.0"
+edition = "2021"
+description = "A parallel, dependency-graph-aware build tool following GNU Make's documented semantics, built on a vendored work-stealing scheduler."
+license = "MIT"
+readme = "README.md"
+
+[[bin]]
+name = "parallel-make"
+path = "src/bin/parallel_make.rs"
+
+[lib]
+name = "parallel_make"
+path = "src/lib.rs"
+
+[dependencies]
+crossbeam-deque = "0.8"
