@@ -1,0 +1,1 @@
+#define FROM_HEADER 42

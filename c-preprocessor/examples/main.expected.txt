@@ -1,0 +1,28 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int main(void) {
+    int max = 100;        
+    int min = 0;        
+    int circumference = (3 * 2); 
+    const char *note = "See http://example.com for details"; 
+    printf("Welcome!");
+    printf("%s\n", "units");
+    return max - min - circumference ;
+}
