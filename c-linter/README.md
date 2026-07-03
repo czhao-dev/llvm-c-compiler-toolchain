@@ -1,6 +1,6 @@
 # c-linter
 
-[![C++17](https://img.shields.io/badge/C%2B%2B-17-blue.svg)](https://en.cppreference.com/w/cpp/17)
+[![C++20](https://img.shields.io/badge/C%2B%2B-20-blue.svg)](https://en.cppreference.com/w/cpp/20)
 [![CMake](https://img.shields.io/badge/CMake-3.20%2B-064F8C.svg)](https://cmake.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
@@ -222,7 +222,7 @@ c-linter/
 
 ## Build & Run
 
-**Dependencies:** CMake 3.20+, a C++17 compiler, Ninja (recommended). No
+**Dependencies:** CMake 3.20+, a C++20 compiler, Ninja (recommended). No
 external libraries.
 
 ```bash

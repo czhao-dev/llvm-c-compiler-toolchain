@@ -1,10 +1,10 @@
 # c-static-analyzer
 
-[![C++17](https://img.shields.io/badge/C%2B%2B-17-00599C.svg)](https://en.cppreference.com/w/cpp/17)
+[![C++20](https://img.shields.io/badge/C%2B%2B-20-00599C.svg)](https://en.cppreference.com/w/cpp/20)
 [![CMake 3.20+](https://img.shields.io/badge/CMake-3.20%2B-064F8C.svg)](https://cmake.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-> A lightweight static analyzer for C code that catches common quality, correctness, and maintainability issues before runtime — built from scratch in C++17 as a sibling to a [MiniC compiler](../c-compiler-llvm) and a [build tool](../build-tool). It only parses (via [tree-sitter](https://tree-sitter.github.io/tree-sitter/)) — it never compiles or executes the code it scans.
+> A lightweight static analyzer for C code that catches common quality, correctness, and maintainability issues before runtime — built from scratch in C++20 as a sibling to a [MiniC compiler](../c-compiler-llvm) and a [build tool](../build-tool). It only parses (via [tree-sitter](https://tree-sitter.github.io/tree-sitter/)) — it never compiles or executes the code it scans.
 
 It parses `.c`/`.h` files, walks the resulting syntax tree with five independent rules, and reports file-and-line diagnostics with stable rule IDs (`SA001`–`SA005`), exiting non-zero on findings — suitable for local use or CI.
 
@@ -208,7 +208,7 @@ c-static-analyzer/
 
 ## Build & Run
 
-Dependencies: CMake 3.20+, a C++17 compiler, Ninja (or another CMake generator), and network access at configure time (to fetch tree-sitter + the C grammar via `FetchContent`).
+Dependencies: CMake 3.20+, a C++20 compiler, Ninja (or another CMake generator), and network access at configure time (to fetch tree-sitter + the C grammar via `FetchContent`).
 
 ```bash
 ./scripts/configure.sh

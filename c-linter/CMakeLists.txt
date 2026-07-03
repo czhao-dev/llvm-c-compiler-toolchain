@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.20)
 
 project(CLinter LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -17,7 +17,7 @@ add_library(cl_core
     src/linter.cpp
 )
 target_include_directories(cl_core PUBLIC include)
-target_compile_features(cl_core PUBLIC cxx_std_17)
+target_compile_features(cl_core PUBLIC cxx_std_20)
 
 add_executable(c-lint src/main.cpp)
 target_link_libraries(c-lint PRIVATE cl_core)
