@@ -1,11 +1,11 @@
 # build-tool
 
-[![C++17](https://img.shields.io/badge/C%2B%2B-17-00599C.svg)](https://en.cppreference.com/w/cpp/17)
+[![C++20](https://img.shields.io/badge/C%2B%2B-20-00599C.svg)](https://en.cppreference.com/w/cpp/20)
 [![CMake 3.20+](https://img.shields.io/badge/CMake-3.20%2B-064F8C.svg)](https://cmake.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](../LICENSE)
 [![CI](https://github.com/czhao-dev/c-llvm-toolchain/actions/workflows/build-tool.yml/badge.svg)](https://github.com/czhao-dev/c-llvm-toolchain/actions/workflows/build-tool.yml)
 
-> A dependency-graph-aware build tool implementing core GNU Make semantics — built from scratch in C++17 as the third piece of a C toolchain alongside a [MiniC compiler](../c-compiler-llvm) and a [C static analyzer](../c-static-analyzer). Variable expansion, pattern rules, and parallel execution are explicit non-goals for this small implementation; see [Supported Features](#supported-features) for the exact boundary.
+> A dependency-graph-aware build tool implementing core GNU Make semantics — built from scratch in C++20 as the third piece of a C toolchain alongside a [MiniC compiler](../c-compiler-llvm) and a [C static analyzer](../c-static-analyzer). Variable expansion, pattern rules, and parallel execution are explicit non-goals for this small implementation; see [Supported Features](#supported-features) for the exact boundary.
 
 It parses a Makefile into target/prerequisite rules, resolves them into a dependency graph (with cycle detection and memoization so a shared dependency is built exactly once), checks mtime-based staleness to skip up-to-date targets, and runs outstanding recipes serially in topological order.
 
@@ -155,7 +155,7 @@ build-tool/
 
 ## Build & Run
 
-Dependencies: CMake 3.20+, a C++17 compiler, Ninja (or another CMake generator).
+Dependencies: CMake 3.20+, a C++20 compiler, Ninja (or another CMake generator).
 
 ```bash
 ./scripts/configure.sh
