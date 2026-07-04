@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.20)
 
 project(MiniCCompiler LANGUAGES C CXX)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -16,7 +16,7 @@ add_library(minic_core
     src/codegen.cpp
 )
 target_include_directories(minic_core PUBLIC include)
-target_compile_features(minic_core PUBLIC cxx_std_17)
+target_compile_features(minic_core PUBLIC cxx_std_20)
 
 if(MINIC_ENABLE_LLVM)
     find_package(LLVM CONFIG QUIET)
