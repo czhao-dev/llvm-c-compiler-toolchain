@@ -1,0 +1,13 @@
+build/
+cmake-build-*/
+.cache/
+.DS_Store
+
+# Native compiler outputs
+*.o
+*.obj
+*.a
+*.so
+*.dylib
+*.exe
+a.out
