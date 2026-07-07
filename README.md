@@ -3,7 +3,7 @@
 [![build-tool CI](https://github.com/czhao-dev/c-llvm-toolchain/actions/workflows/build-tool.yml/badge.svg)](https://github.com/czhao-dev/c-llvm-toolchain/actions/workflows/build-tool.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-A small C toolchain built from scratch, one piece at a time: a preprocessor, a compiler, a static analyzer, a style linter, and a build tool.
+A small C toolchain built from scratch, one piece at a time: a preprocessor, a compiler, a static analyzer, a style linter, a build tool, and a linker.
 
 Each subproject is independent and self-contained — its own language, build system, tests, and README — but together they cover the path from source code to a finished build: check the code, compile it, build it.
 
@@ -18,6 +18,7 @@ Each subproject is independent and self-contained — its own language, build sy
 | [c-static-analyzer](c-static-analyzer) | C++20 | A lightweight static analyzer for C code. Parses `.c`/`.h` files with tree-sitter (no compilation needed) and reports diagnostics for complexity, unused variables, nesting depth, missing returns, and unreachable code. |
 | [c-linter](c-linter) | C++20 | A style/formatting linter for C: snake_case naming, line length (80 cols) and trailing whitespace, magic-number detection in comparisons, and K&R/Allman brace-style consistency. Reporting only — no auto-fixing, and no semantic checks (that's c-static-analyzer's job). |
 | [build-tool](build-tool) | C++20 | A dependency-graph-aware build tool implementing core GNU Make semantics. Resolves a Makefile into a topologically-ordered plan, checks mtime-based staleness, and executes recipes serially with cycle detection and `-k`/`--keep-going` support. |
+| [c-linker](c-linker) | C++20 | A static linker for real ELF64 x86-64 object files: merges `.text`/`.data` sections across multiple `.o` files, resolves symbols (undefined-symbol and multiple-definition detection), applies `Abs64`/`Pc32` relocation fixups, and writes a real, runnable static ELF executable. No dynamic linking, archive parsing, or LTO. |
 
 ## Highlights
 
@@ -30,6 +31,8 @@ Each subproject is independent and self-contained — its own language, build sy
 **c-linter** — Five rules (`CL001`–`CL005`) covering snake_case naming, line length, trailing whitespace, magic numbers in comparisons, and K&R/Allman brace-style consistency, built on a small hand-written lexer that's deliberately never shared with `c-compiler-llvm`, keeping the subproject independent per this repo's convention. The lexer is tolerant by design — unterminated comments/literals and unmodeled punctuation never cause an error, since a linter has to process real-world C it doesn't fully model. All 7 test suites pass. Reporting only, with a CI-friendly non-zero exit code on findings.
 
 **build-tool** — Parses a Makefile into rules, resolves them into a dependency graph with cycle detection and memoization (a shared prerequisite builds exactly once), skips up-to-date targets via mtime staleness, and runs outstanding recipes serially in topological order with `-k`/`--keep-going` support. `-j` parallelism is a deliberate non-goal: it only affects wall-clock build speed, not correctness, so this small tool trades it for a much simpler single-threaded executor. 22 tests pass, and it's the only subproject with CI wired up so far (path-scoped GitHub Actions workflow, gated on a CMake build and `ctest`).
+
+**c-linker** — Parses real ELF64 x86-64 relocatable object files (the same output `clang -c` produces) via pointer-casting onto a small vendored subset of the ELF64 structures, rather than inventing a toy format. Merges `.text`/`.data` across input files, resolves symbols with undefined-symbol and multiple-definition detection, patches `Abs64`/`Pc32`/`Plt32` relocation sites using the real x86-64 psABI formulas, and emits a real, minimal, loadable static ELF executable — runnable directly on x86-64 Linux, verified independently with `readelf`. All 6 test suites pass, every one exercising real `.o` files compiled on the fly by `clang` rather than checked-in binary fixtures.
 
 ## Getting Started
 
@@ -55,6 +58,10 @@ ctest --test-dir build --output-on-failure
 # build-tool (C++20/CMake, no external dependencies)
 cd build-tool && ./scripts/configure.sh && cmake --build build
 ctest --test-dir build --output-on-failure
+
+# c-linker (C++20/CMake, clang required on PATH to build test/example fixtures)
+cd c-linker && ./scripts/configure.sh && cmake --build build
+ctest --test-dir build --output-on-failure
 ```
 
 ## References
@@ -63,8 +70,9 @@ Each subproject cites the sources specific to its own stage of the pipeline
 in its own README — see
 [c-preprocessor](c-preprocessor/README.md#references),
 [c-compiler-llvm](c-compiler-llvm/README.md#references),
-[c-static-analyzer](c-static-analyzer/README.md#references), and
-[c-linter](c-linter/README.md#references). At the
+[c-static-analyzer](c-static-analyzer/README.md#references),
+[c-linter](c-linter/README.md#references), and
+[c-linker](c-linker/README.md#references). At the
 toolchain level:
 
 - ISO/IEC 9899:2018. *Programming Languages — C* (C17 standard) — the
@@ -77,9 +85,9 @@ toolchain level:
   (2nd ed., "Dragon Book"). Addison-Wesley, 2006. — the standard reference
   for the overall shape of a toolchain pipeline: preprocess, compile,
   analyze, build.
-- Levine, John R. *Linkers and Loaders*. Morgan Kaufmann, 2000. — companion
-  reading for what happens just past this toolchain's own scope, once
-  `build-tool` hands compiled objects off to the linker.
+- Levine, John R. *Linkers and Loaders*. Morgan Kaufmann, 2000. — the
+  primary reference for `c-linker`, the final stage of this toolchain's
+  pipeline: symbol resolution, section merging, and relocation processing.
 
 ## License
 
