@@ -14,6 +14,7 @@
 ## Table of Contents
 
 - [Overview](#overview)
+- [Repo Structure](#repo-structure)
 - [Supported Language Features](#supported-language-features)
 - [Example MiniC Programs](#example-minic-programs)
 - [Pipeline Architecture](#pipeline-architecture)
@@ -21,7 +22,6 @@
 - [Testing & Validation](#testing--validation)
 - [Optimization](#optimization)
 - [Error Messages](#error-messages)
-- [Repo Structure](#repo-structure)
 - [Build & Run](#build--run)
 - [License](#license)
 - [References](#references)
@@ -59,6 +59,53 @@ language-coverage roadmap, and
 The compiler is structured as a static library (`libminic_core.a`) with a
 thin `main.cpp` CLI on top, making it easy to embed in test harnesses or
 tooling without going through the command-line interface.
+
+---
+
+## Repo Structure
+
+```
+c-compiler-llvm/
+├── README.md
+├── LICENSE
+├── CMakeLists.txt
+├── scripts/
+│   └── configure.sh         ← sets LLVM_DIR and invokes cmake
+├── include/
+│   ├── token.h              ← token kinds and Token struct
+│   ├── lexer.h
+│   ├── ast.h                ← AST node hierarchy
+│   ├── parser.h
+│   ├── sema.h               ← semantic analyzer
+│   └── codegen.h
+├── src/
+│   ├── lexer.cpp
+│   ├── ast.cpp
+│   ├── parser.cpp
+│   ├── sema.cpp
+│   ├── codegen.cpp
+│   └── main.cpp             ← CLI: invoke stages, flags for IR dump
+├── tests/
+│   ├── lexer_test.cpp
+│   ├── smoke_test.cpp
+│   ├── parser_test.cpp
+│   ├── sema_test.cpp        ← error-case tests
+│   └── codegen_test.cpp     ← runs examples, diffs against clang baseline
+├── examples/
+│   ├── fibonacci.mc
+│   ├── sum_of_squares.mc
+│   ├── fizzbuzz.mc
+│   ├── gcd.mc
+│   ├── pointer_swap.mc
+│   ├── array_sum.mc
+│   ├── struct_point.mc
+│   ├── bit_ops.mc
+│   └── control_flow.mc
+└── docs/
+    ├── ROADMAP.md           ← build plan + language-coverage roadmap
+    ├── language_spec.md     ← BNF grammar + type rules
+    └── ir_walkthrough.md    ← annotated IR for each example program
+```
 
 ---
 
@@ -431,53 +478,6 @@ fibonacci.mc:12:20: error: wrong number of arguments to 'fibonacci' —
                     expected 1, got 2
     return fibonacci(n - 1, n - 2) + fibonacci(n - 2);
            ^~~~~~~~~~
-```
-
----
-
-## Repo Structure
-
-```
-c-compiler-llvm/
-├── README.md
-├── LICENSE
-├── CMakeLists.txt
-├── scripts/
-│   └── configure.sh         ← sets LLVM_DIR and invokes cmake
-├── include/
-│   ├── token.h              ← token kinds and Token struct
-│   ├── lexer.h
-│   ├── ast.h                ← AST node hierarchy
-│   ├── parser.h
-│   ├── sema.h               ← semantic analyzer
-│   └── codegen.h
-├── src/
-│   ├── lexer.cpp
-│   ├── ast.cpp
-│   ├── parser.cpp
-│   ├── sema.cpp
-│   ├── codegen.cpp
-│   └── main.cpp             ← CLI: invoke stages, flags for IR dump
-├── tests/
-│   ├── lexer_test.cpp
-│   ├── smoke_test.cpp
-│   ├── parser_test.cpp
-│   ├── sema_test.cpp        ← error-case tests
-│   └── codegen_test.cpp     ← runs examples, diffs against clang baseline
-├── examples/
-│   ├── fibonacci.mc
-│   ├── sum_of_squares.mc
-│   ├── fizzbuzz.mc
-│   ├── gcd.mc
-│   ├── pointer_swap.mc
-│   ├── array_sum.mc
-│   ├── struct_point.mc
-│   ├── bit_ops.mc
-│   └── control_flow.mc
-└── docs/
-    ├── ROADMAP.md           ← build plan + language-coverage roadmap
-    ├── language_spec.md     ← BNF grammar + type rules
-    └── ir_walkthrough.md    ← annotated IR for each example program
 ```
 
 ---

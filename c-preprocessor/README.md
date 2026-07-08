@@ -13,12 +13,12 @@
 ## Table of Contents
 
 - [Overview](#overview)
+- [Repo Structure](#repo-structure)
 - [Supported Features](#supported-features)
 - [Example](#example)
 - [Pipeline Architecture](#pipeline-architecture)
 - [Macro Expansion: the Hide-Set Algorithm](#macro-expansion-the-hide-set-algorithm)
 - [Testing & Validation](#testing--validation)
-- [Repo Structure](#repo-structure)
 - [Build & Run](#build--run)
 - [License](#license)
 - [References](#references)
@@ -45,6 +45,47 @@ treats preprocessing as a non-goal (see its
 [ROADMAP.md](../c-compiler-llvm/docs/ROADMAP.md)) on the grounds that real
 toolchains split `cpp` out as its own pass ahead of the compiler proper.
 `c-preprocessor` is that separate pass.
+
+---
+
+## Repo Structure
+
+```
+c-preprocessor/
+├── README.md
+├── LICENSE
+├── CMakeLists.txt
+├── scripts/
+│   └── configure.sh          ← cmake -S . -B build -G Ninja (no external deps)
+├── include/
+│   ├── token.h                ← PPToken/PPTokenKind/HideSet
+│   ├── diagnostics.h          ← PreprocessorError
+│   ├── comment_stripper.h
+│   ├── pp_tokenizer.h
+│   ├── macro_table.h
+│   ├── macro_expander.h       ← pure hide-set rescanning
+│   └── preprocessor.h         ← directive dispatch + #include recursion
+├── src/
+│   ├── diagnostics.cpp, comment_stripper.cpp, pp_tokenizer.cpp,
+│   │   macro_table.cpp, macro_expander.cpp, preprocessor.cpp
+│   └── main.cpp                ← CLI
+├── tests/
+│   ├── comment_stripper_test.cpp   ← in-memory
+│   ├── pp_tokenizer_test.cpp       ← in-memory
+│   ├── macro_expander_test.cpp     ← in-memory
+│   ├── directive_test.cpp
+│   ├── include_resolution_test.cpp
+│   ├── preprocessor_test.cpp       ← golden-output comparison
+│   ├── cli_test.cpp                ← subprocess exercise of c-preprocess
+│   └── fixtures/                   ← small deliberately tricky/broken inputs
+├── examples/                   ← realistic multi-file smoke scenario
+│   ├── main.c, constants.h, geometry.h, util.h, lib/inner.h
+│   └── main.expected.txt       ← checked-in golden output
+└── docs/
+    └── SPEC.md                 ← directive grammar, comment/macro/include
+                                    semantics, worked hide-set examples,
+                                    CLI reference, error format
+```
 
 ---
 
@@ -222,47 +263,6 @@ Test project /path/to/c-preprocessor/build
 | `include_resolution_test` | Resolution relative to the including file's directory (not the top-level file's), `-I` search paths and precedence, circular-include detection with the chain named, diamond includes emitted twice (not deduplicated), malformed/missing/angle-bracket includes |
 | `preprocessor_test` | End-to-end run against `examples/main.c`: no directive leaks into output, macro values resolved correctly, a `//`-containing string literal survives, line-number preservation across includes/comments, byte-for-byte golden-output comparison |
 | `cli_test` | Subprocess exercise of the built `c-preprocess` binary: missing input, `-o`/stdout output, `-I`, unsupported-directive error formatting, `--help`, unknown flags, multiple positionals |
-
----
-
-## Repo Structure
-
-```
-c-preprocessor/
-├── README.md
-├── LICENSE
-├── CMakeLists.txt
-├── scripts/
-│   └── configure.sh          ← cmake -S . -B build -G Ninja (no external deps)
-├── include/
-│   ├── token.h                ← PPToken/PPTokenKind/HideSet
-│   ├── diagnostics.h          ← PreprocessorError
-│   ├── comment_stripper.h
-│   ├── pp_tokenizer.h
-│   ├── macro_table.h
-│   ├── macro_expander.h       ← pure hide-set rescanning
-│   └── preprocessor.h         ← directive dispatch + #include recursion
-├── src/
-│   ├── diagnostics.cpp, comment_stripper.cpp, pp_tokenizer.cpp,
-│   │   macro_table.cpp, macro_expander.cpp, preprocessor.cpp
-│   └── main.cpp                ← CLI
-├── tests/
-│   ├── comment_stripper_test.cpp   ← in-memory
-│   ├── pp_tokenizer_test.cpp       ← in-memory
-│   ├── macro_expander_test.cpp     ← in-memory
-│   ├── directive_test.cpp
-│   ├── include_resolution_test.cpp
-│   ├── preprocessor_test.cpp       ← golden-output comparison
-│   ├── cli_test.cpp                ← subprocess exercise of c-preprocess
-│   └── fixtures/                   ← small deliberately tricky/broken inputs
-├── examples/                   ← realistic multi-file smoke scenario
-│   ├── main.c, constants.h, geometry.h, util.h, lib/inner.h
-│   └── main.expected.txt       ← checked-in golden output
-└── docs/
-    └── SPEC.md                 ← directive grammar, comment/macro/include
-                                    semantics, worked hide-set examples,
-                                    CLI reference, error format
-```
 
 ---
 

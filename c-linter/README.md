@@ -14,11 +14,11 @@
 ## Table of Contents
 
 - [Overview](#overview)
+- [Repo Structure](#repo-structure)
 - [Rules](#rules)
 - [Example](#example)
 - [Architecture](#architecture)
 - [Testing](#testing)
-- [Repo Structure](#repo-structure)
 - [Build & Run](#build--run)
 - [License](#license)
 - [References](#references)
@@ -43,6 +43,44 @@ It ships its own small, tolerant lexer rather than depending on
 `c-compiler-llvm`'s, keeping the subproject independent per this repo's
 convention that each piece has its own language, build system, tests, and
 README.
+
+---
+
+## Repo Structure
+
+```
+c-linter/
+├── README.md
+├── LICENSE
+├── CMakeLists.txt
+├── scripts/
+│   └── configure.sh          ← cmake -S . -B build -G Ninja (no external deps)
+├── include/
+│   ├── token.h                ← TokenType/SourceLocation/Token
+│   ├── lexer.h                ← tolerant, never-throws Lexer
+│   ├── diagnostic.h           ← Severity/RuleCode/Diagnostic/format()
+│   ├── line_rules.h           ← CL002/CL003, raw-text pass
+│   ├── naming_rule.h          ← CL001
+│   ├── magic_number_rule.h    ← CL004
+│   ├── brace_style_rule.h     ← CL005, BraceStyle
+│   └── linter.h               ← LinterOptions/Linter orchestration
+├── src/
+│   ├── token.cpp, lexer.cpp, diagnostic.cpp, line_rules.cpp,
+│   │   naming_rule.cpp, magic_number_rule.cpp, brace_style_rule.cpp,
+│   │   linter.cpp
+│   └── main.cpp                ← CLI
+├── tests/
+│   ├── lexer_test.cpp, naming_rule_test.cpp, line_rules_test.cpp,
+│   │   magic_number_rule_test.cpp, brace_style_rule_test.cpp  ← in-memory
+│   ├── linter_test.cpp         ← fixture/example-based integration test
+│   ├── cli_test.cpp            ← subprocess exercise of c-lint
+│   └── fixtures/               ← kitchen_sink.c, clean.c, allman_style.c, short_line.c
+├── examples/
+│   └── sample.c                ← realistic worked example
+└── docs/
+    └── SPEC.md                 ← rule definitions, lexer tolerance policy,
+                                    exemption rationale
+```
 
 ---
 
@@ -179,44 +217,6 @@ Test project .../c-linter/build
 | `brace_style_rule_test` | K&R and Allman in both directions, nested parens in the condition, braceless bodies and `do`/`while` trailers left alone, truncated input not crashing |
 | `linter_test` | Full aggregation/sort contract on a fixture hitting all 5 codes, zero diagnostics on a clean fixture, `LinterOptions` overrides changing results, structural checks against `examples/sample.c` |
 | `cli_test` | Subprocess exercise of the built `c-lint` binary: usage/exit codes, multi-file runs, a missing file alongside a valid one, `--max-line-length`, `--brace-style`, `--help`, malformed flags |
-
----
-
-## Repo Structure
-
-```
-c-linter/
-├── README.md
-├── LICENSE
-├── CMakeLists.txt
-├── scripts/
-│   └── configure.sh          ← cmake -S . -B build -G Ninja (no external deps)
-├── include/
-│   ├── token.h                ← TokenType/SourceLocation/Token
-│   ├── lexer.h                ← tolerant, never-throws Lexer
-│   ├── diagnostic.h           ← Severity/RuleCode/Diagnostic/format()
-│   ├── line_rules.h           ← CL002/CL003, raw-text pass
-│   ├── naming_rule.h          ← CL001
-│   ├── magic_number_rule.h    ← CL004
-│   ├── brace_style_rule.h     ← CL005, BraceStyle
-│   └── linter.h               ← LinterOptions/Linter orchestration
-├── src/
-│   ├── token.cpp, lexer.cpp, diagnostic.cpp, line_rules.cpp,
-│   │   naming_rule.cpp, magic_number_rule.cpp, brace_style_rule.cpp,
-│   │   linter.cpp
-│   └── main.cpp                ← CLI
-├── tests/
-│   ├── lexer_test.cpp, naming_rule_test.cpp, line_rules_test.cpp,
-│   │   magic_number_rule_test.cpp, brace_style_rule_test.cpp  ← in-memory
-│   ├── linter_test.cpp         ← fixture/example-based integration test
-│   ├── cli_test.cpp            ← subprocess exercise of c-lint
-│   └── fixtures/               ← kitchen_sink.c, clean.c, allman_style.c, short_line.c
-├── examples/
-│   └── sample.c                ← realistic worked example
-└── docs/
-    └── SPEC.md                 ← rule definitions, lexer tolerance policy,
-                                    exemption rationale
-```
 
 ---
 

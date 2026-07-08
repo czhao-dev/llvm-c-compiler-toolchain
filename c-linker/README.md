@@ -15,10 +15,10 @@
 ## Table of Contents
 
 - [Overview](#overview)
+- [Repo Structure](#repo-structure)
 - [Example](#example)
 - [Architecture](#architecture)
 - [Testing](#testing)
-- [Repo Structure](#repo-structure)
 - [Build & Run](#build--run)
 - [License](#license)
 - [References](#references)
@@ -65,6 +65,41 @@ this repo's macOS/arm64 dev environment — without a Linux sysroot, since
 the fixtures never `#include` a system header). The linker's own runtime
 has zero external dependencies; `clang` is only needed to build this
 subproject's tests and examples.
+
+---
+
+## Repo Structure
+
+```
+c-linker/
+├── README.md
+├── LICENSE
+├── CMakeLists.txt
+├── scripts/
+│   └── configure.sh          ← cmake -S . -B build -G Ninja
+├── include/
+│   ├── elf64.h                 ← vendored ELF64 structs/constants (no logic)
+│   ├── object_file.h           ← ObjectFile/Section/Symbol/Relocation model
+│   ├── elf_reader.h            ← readElfObject()
+│   ├── elf_writer.h            ← writeElfExecutable()
+│   ├── diagnostic.h            ← Severity/DiagnosticCode/Diagnostic/toString()
+│   ├── symbol_resolver.h       ← SymbolTable, buildSymbolTable(), checkUndefinedSymbols()
+│   ├── section_merger.h        ← MergedLayout, mergeSections()
+│   ├── relocation_applier.h    ← resolvedAddress(), applyRelocations()
+│   ├── linker.h                ← LinkOptions/LinkedImage/LinkResult, link(), linkObjects()
+│   └── cli.h                   ← LinkArgs/CliError, parseArgs(), run()
+├── src/                        ← one .cpp per header above, plus main.cpp
+├── tests/
+│   ├── support/compile_fixture.h  ← shells out to clang to build real .o fixtures
+│   ├── fixtures/                  ← real, small, freestanding C sources
+│   ├── elf_reader_test.cpp, symbol_resolver_test.cpp, section_merger_test.cpp,
+│   │   relocation_test.cpp, linker_test.cpp  ← in-memory / library-level
+│   └── cli_test.cpp               ← subprocess exercise of c-link
+├── examples/
+│   └── main.c, math.c          ← the worked example above
+└── docs/
+    └── SPEC.md                 ← object file format, patch formulas, non-goals
+```
 
 ---
 
@@ -180,41 +215,6 @@ Test project .../c-linker/build
 | `relocation_test` | Hand-verified `Abs64` and `Pc32`/`Plt32` patch math against real compiled relocations, plus a fabricated out-of-range case producing `RelocationOverflow` and leaving bytes untouched |
 | `linker_test` | End-to-end `linkObjects()`: entry point, call-site patching, an auto-computed data base, undefined-symbol and multiple-definition failure paths |
 | `cli_test` | Subprocess exercise of the built `c-link` binary: a real runnable ELF header comes out on success, exit codes 0/1/2, `--help` |
-
----
-
-## Repo Structure
-
-```
-c-linker/
-├── README.md
-├── LICENSE
-├── CMakeLists.txt
-├── scripts/
-│   └── configure.sh          ← cmake -S . -B build -G Ninja
-├── include/
-│   ├── elf64.h                 ← vendored ELF64 structs/constants (no logic)
-│   ├── object_file.h           ← ObjectFile/Section/Symbol/Relocation model
-│   ├── elf_reader.h            ← readElfObject()
-│   ├── elf_writer.h            ← writeElfExecutable()
-│   ├── diagnostic.h            ← Severity/DiagnosticCode/Diagnostic/toString()
-│   ├── symbol_resolver.h       ← SymbolTable, buildSymbolTable(), checkUndefinedSymbols()
-│   ├── section_merger.h        ← MergedLayout, mergeSections()
-│   ├── relocation_applier.h    ← resolvedAddress(), applyRelocations()
-│   ├── linker.h                ← LinkOptions/LinkedImage/LinkResult, link(), linkObjects()
-│   └── cli.h                   ← LinkArgs/CliError, parseArgs(), run()
-├── src/                        ← one .cpp per header above, plus main.cpp
-├── tests/
-│   ├── support/compile_fixture.h  ← shells out to clang to build real .o fixtures
-│   ├── fixtures/                  ← real, small, freestanding C sources
-│   ├── elf_reader_test.cpp, symbol_resolver_test.cpp, section_merger_test.cpp,
-│   │   relocation_test.cpp, linker_test.cpp  ← in-memory / library-level
-│   └── cli_test.cpp               ← subprocess exercise of c-link
-├── examples/
-│   └── main.c, math.c          ← the worked example above
-└── docs/
-    └── SPEC.md                 ← object file format, patch formulas, non-goals
-```
 
 ---
 

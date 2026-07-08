@@ -13,12 +13,12 @@ It parses `.c`/`.h` files, walks the resulting syntax tree with five independent
 ## Table of Contents
 
 - [Checks](#checks)
+- [Repo Structure](#repo-structure)
 - [Quick Start](#quick-start)
 - [Usage](#usage)
 - [Configuration](#configuration)
 - [Architecture](#architecture)
 - [Testing](#testing)
-- [Repo Structure](#repo-structure)
 - [Build & Run](#build--run)
 - [License](#license)
 - [References](#references)
@@ -34,6 +34,33 @@ It parses `.c`/`.h` files, walks the resulting syntax tree with five independent
 | `SA003` | Warning | Control flow nesting depth exceeds threshold |
 | `SA004` | Error   | Non-void function may not return a value on all paths |
 | `SA005` | Warning | Unreachable code after `return`, `break`, `continue`, or `goto` |
+
+## Repo Structure
+
+```text
+c-static-analyzer/
+├── CMakeLists.txt
+├── scripts/
+│   └── configure.sh              # cmake -S . -B build -G Ninja
+├── include/
+│   ├── cli.h                     # ScanArgs, parseArgs(), buildConfig(), run()
+│   ├── config.h                  # Config, loadConfig() — TOML-subset parser
+│   ├── analyzer.h                # file discovery, isExcluded(), analyzeFile()/analyzePaths()
+│   ├── diagnostic.h              # Diagnostic struct, ordering, toString()
+│   ├── fnmatch.h                 # glob matching for exclude patterns
+│   ├── visitor.h                 # shared tree-sitter C-API traversal helpers
+│   └── rules/
+│       ├── rule.h                # Rule interface
+│       └── sa00N_*.h             # one header per rule
+├── src/                          # mirrors include/, plus main.cpp
+│   └── rules/sa00N_*.cpp
+├── tests/                        # one executable per suite (see Testing above)
+├── examples/
+│   └── sample_issues.c           # triggers every rule; the golden fixture
+└── docs/
+    └── SPEC.md                   # exact rule semantics (complexity scoring,
+                                   # nesting rules, exit-guarantee logic, etc.)
+```
 
 ## Quick Start
 
@@ -177,33 +204,6 @@ examples/sample_issues.c:41: SA002 Local variable `unused` is assigned but never
 examples/sample_issues.c:45: SA005 Unreachable code after `return`
 
 5 issue(s) found.
-```
-
-## Repo Structure
-
-```text
-c-static-analyzer/
-├── CMakeLists.txt
-├── scripts/
-│   └── configure.sh              # cmake -S . -B build -G Ninja
-├── include/
-│   ├── cli.h                     # ScanArgs, parseArgs(), buildConfig(), run()
-│   ├── config.h                  # Config, loadConfig() — TOML-subset parser
-│   ├── analyzer.h                # file discovery, isExcluded(), analyzeFile()/analyzePaths()
-│   ├── diagnostic.h              # Diagnostic struct, ordering, toString()
-│   ├── fnmatch.h                 # glob matching for exclude patterns
-│   ├── visitor.h                 # shared tree-sitter C-API traversal helpers
-│   └── rules/
-│       ├── rule.h                # Rule interface
-│       └── sa00N_*.h             # one header per rule
-├── src/                          # mirrors include/, plus main.cpp
-│   └── rules/sa00N_*.cpp
-├── tests/                        # one executable per suite (see Testing above)
-├── examples/
-│   └── sample_issues.c           # triggers every rule; the golden fixture
-└── docs/
-    └── SPEC.md                   # exact rule semantics (complexity scoring,
-                                   # nesting rules, exit-guarantee logic, etc.)
 ```
 
 ## Build & Run
