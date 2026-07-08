@@ -14,11 +14,11 @@ It parses a Makefile into target/prerequisite rules, resolves them into a depend
 ## Table of Contents
 
 - [Overview](#overview)
+- [Repo Structure](#repo-structure)
 - [Supported Features](#supported-features)
 - [Example](#example)
 - [Architecture](#architecture)
 - [Testing](#testing)
-- [Repo Structure](#repo-structure)
 - [Build & Run](#build--run)
 - [License](#license)
 - [References](#references)
@@ -30,6 +30,31 @@ It parses a Makefile into target/prerequisite rules, resolves them into a depend
 `build-tool` reads a Makefile, builds a dependency graph out of its rules, and runs whatever recipes are actually needed to bring the requested targets up to date — in the order their dependencies require, never running a target's recipe before its prerequisites have finished.
 
 It deliberately does **not** try to be a drop-in `make` replacement. There's no variable expansion, no pattern rules, and no parallel execution — just the core mental model of Make (targets, prerequisites, recipes, staleness) implemented precisely and tested thoroughly, rather than a large surface implemented approximately.
+
+## Repo Structure
+
+```text
+build-tool/
+├── CMakeLists.txt
+├── scripts/
+│   └── configure.sh          # cmake -S . -B build -G Ninja
+├── include/
+│   ├── cli.h                 # Args, parseArgs() — -k/--keep-going, target list
+│   ├── makefile.h             # Rule, ParsedMakefile, parseMakefile(), discoverMakefile()
+│   └── planner.h              # BuildStatus, Plan, plan(), execute()
+├── src/
+│   ├── cli.cpp
+│   ├── makefile.cpp
+│   ├── planner.cpp
+│   └── main.cpp               # binary entry point
+├── tests/
+│   ├── makefile_parser_test.cpp  # 11 cases: parsing, .PHONY, discover
+│   ├── planner_test.cpp          # 8 cases: diamond, cycle detection, staleness
+│   └── build_tool_e2e_test.cpp   # 3 cases: end-to-end binary invocations
+├── examples/                  # a small compiled C program built by build-tool itself
+└── docs/
+    └── SPEC.md                # the exact Makefile subset this tool implements
+```
 
 ## Supported Features
 
@@ -126,31 +151,6 @@ Test project build-tool/build
 3/3 Test #3: build_tool_e2e_test ..............   Passed
 
 100% tests passed, 0 tests failed out of 3
-```
-
-## Repo Structure
-
-```text
-build-tool/
-├── CMakeLists.txt
-├── scripts/
-│   └── configure.sh          # cmake -S . -B build -G Ninja
-├── include/
-│   ├── cli.h                 # Args, parseArgs() — -k/--keep-going, target list
-│   ├── makefile.h             # Rule, ParsedMakefile, parseMakefile(), discoverMakefile()
-│   └── planner.h              # BuildStatus, Plan, plan(), execute()
-├── src/
-│   ├── cli.cpp
-│   ├── makefile.cpp
-│   ├── planner.cpp
-│   └── main.cpp               # binary entry point
-├── tests/
-│   ├── makefile_parser_test.cpp  # 11 cases: parsing, .PHONY, discover
-│   ├── planner_test.cpp          # 8 cases: diamond, cycle detection, staleness
-│   └── build_tool_e2e_test.cpp   # 3 cases: end-to-end binary invocations
-├── examples/                  # a small compiled C program built by build-tool itself
-└── docs/
-    └── SPEC.md                # the exact Makefile subset this tool implements
 ```
 
 ## Build & Run
