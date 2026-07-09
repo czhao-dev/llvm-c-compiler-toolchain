@@ -21,6 +21,18 @@ cmake --build build` — nothing in `testing/` builds anything itself.
   python3 testing/differential/run_differential_tests.py
   ```
 
-More suites (negative/snapshot testing of the linter and analyzer's
-guardrails, and toolchain/execution benchmarks) land in follow-up commits
-and get their own section here.
+- **`invalid/`** — snapshot-tests `c-lint` and `c-static-analyzer`'s
+  default diagnostic output against frozen `<fixture>.expected.txt`
+  files, generalizing the golden-fixture convention already used by
+  `c-static-analyzer/tests/golden_test.cpp` into a small suite spanning
+  both tools.
+
+  ```bash
+  python3 testing/invalid/run_negative_tests.py
+
+  # after deliberately changing a rule's message wording:
+  python3 testing/invalid/run_negative_tests.py --update
+  ```
+
+Toolchain/execution benchmarks land in a follow-up commit and get their
+own section here.

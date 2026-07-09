@@ -1,0 +1,1 @@
+fail_uninitialized.c:3: SA006 Local variable `result` may be used before being initialized
