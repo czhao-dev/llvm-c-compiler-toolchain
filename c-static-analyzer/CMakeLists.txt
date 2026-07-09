@@ -56,6 +56,7 @@ add_library(sa_core
     src/rules/sa003_nesting.cpp
     src/rules/sa004_missing_return.cpp
     src/rules/sa005_unreachable_code.cpp
+    src/rules/sa006_uninitialized_variable.cpp
 )
 target_include_directories(sa_core PUBLIC include)
 target_compile_features(sa_core PUBLIC cxx_std_20)
@@ -97,6 +98,10 @@ add_test(NAME sa004_missing_return_test COMMAND sa004_missing_return_test)
 add_executable(sa005_unreachable_code_test tests/sa005_unreachable_code_test.cpp)
 target_link_libraries(sa005_unreachable_code_test PRIVATE sa_core)
 add_test(NAME sa005_unreachable_code_test COMMAND sa005_unreachable_code_test)
+
+add_executable(sa006_uninitialized_variable_test tests/sa006_uninitialized_variable_test.cpp)
+target_link_libraries(sa006_uninitialized_variable_test PRIVATE sa_core)
+add_test(NAME sa006_uninitialized_variable_test COMMAND sa006_uninitialized_variable_test)
 
 add_executable(golden_test tests/golden_test.cpp)
 add_dependencies(golden_test c-static-analyzer)
