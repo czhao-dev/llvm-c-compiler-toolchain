@@ -6,7 +6,7 @@
 
 > A lightweight static analyzer for C code that catches common quality, correctness, and maintainability issues before runtime — built from scratch in C++20 as a sibling to a [MiniC compiler](../c-compiler-llvm) and a [build tool](../build-tool). It only parses (via [tree-sitter](https://tree-sitter.github.io/tree-sitter/)) — it never compiles or executes the code it scans.
 
-It parses `.c`/`.h` files, walks the resulting syntax tree with five independent rules, and reports file-and-line diagnostics with stable rule IDs (`SA001`–`SA005`), exiting non-zero on findings — suitable for local use or CI.
+It parses `.c`/`.h` files, walks the resulting syntax tree with six independent rules, and reports file-and-line diagnostics with stable rule IDs (`SA001`–`SA006`), exiting non-zero on findings — suitable for local use or CI.
 
 ---
 
@@ -34,6 +34,7 @@ It parses `.c`/`.h` files, walks the resulting syntax tree with five independent
 | `SA003` | Warning | Control flow nesting depth exceeds threshold |
 | `SA004` | Error   | Non-void function may not return a value on all paths |
 | `SA005` | Warning | Unreachable code after `return`, `break`, `continue`, or `goto` |
+| `SA006` | Warning | Local variable may be used before being initialized |
 
 ## Repo Structure
 
@@ -88,6 +89,23 @@ The analyzer reports:
 
 ```
 example.c:1: SA004 Function `classify` may not return a value on all code paths
+```
+
+`SA006` catches the mirror-image mistake — reading a local before it's ever
+written:
+
+```c
+int compute(int flag) {
+    int result;
+    return result;
+}
+```
+
+```
+$ c-static-analyzer scan example.c --no-config --select SA006
+example.c:3: SA006 Local variable `result` may be used before being initialized
+
+1 issue(s) found.
 ```
 
 ## Usage
@@ -167,7 +185,7 @@ Unlike the original Rust implementation (which used tree-sitter's Rust bindings)
 
 ## Testing
 
-10 test suites, run with `ctest`.
+11 test suites, run with `ctest`.
 
 | Suite | What it checks |
 |---|---|
@@ -179,6 +197,7 @@ Unlike the original Rust implementation (which used tree-sitter's Rust bindings)
 | `sa003_nesting_test` | Nesting depth, `elif`-chain vs. real-`else` distinction, single report per function, `switch`/`case` nesting |
 | `sa004_missing_return_test` | Missing-`else` detection, exhaustive if/else(-if), void functions, infinite loops with/without `break` |
 | `sa005_unreachable_code_test` | Code after `return`/`break` (including inside loops and `case` bodies) |
+| `sa006_uninitialized_variable_test` | Read-before-write detection, initializer/array/underscore exemptions, field-by-field struct writes |
 | `golden_test` | Byte-for-byte comparison against [examples/sample_issues.c](examples/sample_issues.c)'s frozen expected output |
 | `cli_test` | Subprocess exercise of the real binary: clean exit 0, findings exit 1, `--select` filtering, missing path exit 2 |
 
@@ -186,11 +205,11 @@ Unlike the original Rust implementation (which used tree-sitter's Rust bindings)
 $ ctest --test-dir build --output-on-failure
 Test project c-static-analyzer/build
       Start  1: fnmatch_test
- 1/10 Test  #1: fnmatch_test .....................   Passed
+ 1/11 Test  #1: fnmatch_test .....................   Passed
       ...
-10/10 Test #10: cli_test .........................   Passed
+11/11 Test #11: cli_test .........................   Passed
 
-100% tests passed, 0 tests failed out of 10
+100% tests passed, 0 tests failed out of 11
 ```
 
 Running the analyzer on [examples/sample_issues.c](examples/sample_issues.c) (a file written to trigger every rule) confirms end-to-end behavior:

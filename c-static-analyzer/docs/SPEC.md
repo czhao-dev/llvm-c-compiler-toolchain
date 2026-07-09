@@ -113,3 +113,54 @@ such occurrence per block is reported — this rule doesn't try to flag
 every subsequent statement, just the first sign of dead code — though
 nested blocks are each checked independently, so dead code inside a
 nested `if`/loop is still caught.
+
+## SA006 — Uninitialized variable
+
+Considers the same population of locals as SA002 (a `declaration` inside a
+function body, name not starting with `_`), restricted to locals declared
+**without** an initializer. For each such local, this rule finds its first
+subsequent reference, in textual (preorder) source order, and classifies it
+as a write or a read:
+
+- A write is either the plain left-hand side of a bare `=` assignment
+  (`x = 1;`), or a `.`/`->` field access that is itself the plain
+  left-hand side of a bare `=` assignment (`pt.x = 1;` / `p->x = 1;` —
+  added specifically so the declare-then-initialize-field-by-field idiom
+  isn't flagged).
+- Anything else — a plain read, a function-call argument, a condition, an
+  address-of (`&x`), or a compound-assignment target like `x += 1` (which
+  also reads `x`) — is a read, and gets flagged.
+
+If a local is never referenced again at all, SA006 does not flag it —
+that's SA002's job, not SA006's; the two rules never double-report the
+same declaration.
+
+**This is a single textual pass, not control-flow-sensitive dataflow
+analysis**, and that produces both false negatives and false positives by
+design, same as this project's other rules make deliberate, documented
+simplifications:
+
+- False negative: `int x; if (c) { x = 1; } printf("%d", x);` is not
+  flagged, because the first textual reference to `x` is the write inside
+  the `if`, even though `x` is genuinely uninitialized when `c` is false.
+  SA006 does not reason about which branch executes or whether a write
+  dominates a later read.
+- False positive: `int x; if (c) { printf("%d", x); } else { x = 1; }` is
+  flagged, even though this is only a real bug when `c` is true.
+- False positive: `int x; scanf("%d", &x); use(x);` is flagged — `&x` is
+  classified as a read (it isn't the left-hand side of `=`), even though
+  it's actually being filled in by `scanf`. Passing an uninitialized local
+  by address to be written through it is a real, known limitation, not an
+  edge case worth silently ignoring in this note.
+- Shadowing: since neither SA002 nor SA006 is scope-aware (both use a flat
+  per-function name→declaration-site map, first declaration wins), a
+  reference to an inner shadowing declaration of the same name may be
+  attributed to the outer one instead.
+
+**Array-typed locals are not analyzed at all.** `arr[0] = 5;` parses so
+that `arr`'s immediate parent is a `subscript_expression`, not an
+`assignment_expression` — a write through a subscript would always be
+misclassified as a read by the rule above, so array-typed declarations are
+excluded entirely rather than guaranteed false-positive on nearly every
+declared-then-indexed array. Subscript-aware write detection is an
+explicit non-goal.

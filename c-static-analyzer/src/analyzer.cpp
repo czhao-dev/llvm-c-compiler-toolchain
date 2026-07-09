@@ -17,6 +17,7 @@
 #include "rules/sa003_nesting.h"
 #include "rules/sa004_missing_return.h"
 #include "rules/sa005_unreachable_code.h"
+#include "rules/sa006_uninitialized_variable.h"
 
 namespace sa {
 
@@ -55,9 +56,11 @@ const UnusedVariables kUnusedVariablesRule;
 const Nesting kNestingRule;
 const MissingReturn kMissingReturnRule;
 const UnreachableCode kUnreachableCodeRule;
+const UninitializedVariable kUninitializedVariableRule;
 
 const Rule *const kAllRules[] = {
-    &kComplexityRule, &kUnusedVariablesRule, &kNestingRule, &kMissingReturnRule, &kUnreachableCodeRule,
+    &kComplexityRule,      &kUnusedVariablesRule,     &kNestingRule,
+    &kMissingReturnRule,   &kUnreachableCodeRule,     &kUninitializedVariableRule,
 };
 
 } // namespace
