@@ -1,0 +1,120 @@
+name: testing-suite CI
+
+on:
+  push:
+    paths:
+      - "testing/**"
+      - "c-preprocessor/src/**"
+      - "c-preprocessor/include/**"
+      - "c-compiler-llvm/src/**"
+      - "c-compiler-llvm/include/**"
+      - "c-static-analyzer/src/**"
+      - "c-static-analyzer/include/**"
+      - "c-linter/src/**"
+      - "c-linter/include/**"
+      - "c-linker/src/**"
+      - "c-linker/include/**"
+      - "build-tool/src/**"
+      - "build-tool/include/**"
+      - ".github/workflows/testing-suite.yml"
+  pull_request:
+    paths:
+      - "testing/**"
+      - "c-preprocessor/src/**"
+      - "c-preprocessor/include/**"
+      - "c-compiler-llvm/src/**"
+      - "c-compiler-llvm/include/**"
+      - "c-static-analyzer/src/**"
+      - "c-static-analyzer/include/**"
+      - "c-linter/src/**"
+      - "c-linter/include/**"
+      - "c-linker/src/**"
+      - "c-linker/include/**"
+      - "build-tool/src/**"
+      - "build-tool/include/**"
+      - ".github/workflows/testing-suite.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install shared dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build clang hyperfine
+          wget https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          sudo ./llvm.sh 17
+          echo "LLVM_CONFIG=/usr/bin/llvm-config-17" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      # Sequenced in one job rather than fanned out across the per-
+      # subproject workflows, since the suites below need all binaries
+      # present simultaneously.
+      - name: Build c-preprocessor
+        run: |
+          cd c-preprocessor
+          ./scripts/configure.sh
+          cmake --build build
+      - name: Build c-compiler-llvm
+        run: |
+          cd c-compiler-llvm
+          ./scripts/configure.sh
+          cmake --build build
+      - name: Build c-static-analyzer
+        run: |
+          cd c-static-analyzer
+          ./scripts/configure.sh
+          cmake --build build
+      - name: Build c-linter
+        run: |
+          cd c-linter
+          ./scripts/configure.sh
+          cmake --build build
+      - name: Build c-linker
+        run: |
+          cd c-linker
+          ./scripts/configure.sh
+          cmake --build build
+
+      - name: Run negative/snapshot tests
+        run: python3 testing/invalid/run_negative_tests.py
+
+      - name: Run differential tests
+        run: python3 testing/differential/run_differential_tests.py
+
+      - name: Install matplotlib
+        if: always()
+        continue-on-error: true
+        run: python3 -m pip install --quiet -r testing/requirements.txt
+
+      # Informational only -- wall-clock timings on a shared runner are too
+      # noisy to gate merges on, and this suite's own exploration found a
+      # real minic bug where one combination (sieve.mc -O2) hangs at
+      # compile time (see programs/sieve.mc); run_benchmarks.py survives
+      # that internally, but continue-on-error is a second layer ensuring
+      # nothing benchmark-related ever flips the job's pass/fail bit.
+      - name: Run benchmarks
+        if: always()
+        continue-on-error: true
+        run: |
+          python3 testing/benchmarks/run_benchmarks.py --output testing/benchmarks/results.json
+          python3 testing/benchmarks/report.py testing/benchmarks/results.json > benchmark-summary.md
+          python3 testing/benchmarks/plot.py testing/benchmarks/results.json --out-dir benchmark-charts
+          cat benchmark-summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload benchmark results
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results
+          path: |
+            testing/benchmarks/results.json
+            benchmark-summary.md
+            benchmark-charts/
