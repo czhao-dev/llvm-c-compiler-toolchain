@@ -34,5 +34,32 @@ cmake --build build` — nothing in `testing/` builds anything itself.
   python3 testing/invalid/run_negative_tests.py --update
   ```
 
-Toolchain/execution benchmarks land in a follow-up commit and get their
-own section here.
+- **`benchmarks/`** — toolchain compile-speed and execution-speed
+  comparison between `minic` and `clang`, using
+  [hyperfine](https://github.com/sharkdp/hyperfine) (a hard dependency
+  for this suite specifically — `brew install hyperfine` locally,
+  installed explicitly in CI). Programs live in `benchmarks/programs/`:
+  `sieve.mc`, `fibonacci.mc` (naive recursive), `bubble_sort.mc`
+  (worst-case reverse-sorted input).
+
+  ```bash
+  python3 testing/benchmarks/run_benchmarks.py --output testing/benchmarks/results.json
+  python3 testing/benchmarks/report.py testing/benchmarks/results.json
+  python3 testing/benchmarks/plot.py testing/benchmarks/results.json   # requires matplotlib, see requirements.txt
+  ```
+
+  `results.json` is a point-in-time measurement and is gitignored; the
+  generated chart PNGs under `benchmarks/charts/` are committed, since
+  they're the artifacts the root README embeds.
+
+  This suite's own exploration surfaced two real, pre-existing bugs in
+  `c-compiler-llvm`, documented where discovered rather than fixed here
+  (out of scope for a testing/benchmarking task): see the header comments
+  in `testing/differential/cases/03_pointers.mc` (an `-O2` codegen bug
+  for functions taking an `int **` parameter) and
+  `testing/benchmarks/programs/sieve.mc` (a runtime crash and, separately,
+  an `-O2` compile-time hang, both tied to a loop nested inside another
+  loop at moderate-to-large iteration counts). `run_benchmarks.py`
+  survives the hang by bounding every hyperfine invocation with an
+  external timeout and recording that combination as a failure rather
+  than blocking the rest of the suite.
