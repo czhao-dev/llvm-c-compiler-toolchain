@@ -1,0 +1,38 @@
+name: c-compiler-llvm CI
+
+on:
+  push:
+    paths:
+      - "c-compiler-llvm/**"
+      - ".github/workflows/c-compiler-llvm.yml"
+  pull_request:
+    paths:
+      - "c-compiler-llvm/**"
+      - ".github/workflows/c-compiler-llvm.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: c-compiler-llvm
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Ninja
+        run: sudo apt-get update && sudo apt-get install -y ninja-build
+      - name: Install LLVM 17
+        run: |
+          wget https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          sudo ./llvm.sh 17
+          echo "LLVM_CONFIG=/usr/bin/llvm-config-17" >> "$GITHUB_ENV"
+      # scripts/configure.sh defaults LLVM_CONFIG to a Homebrew path that
+      # doesn't exist here; without this override, LLVM_FOUND is false and
+      # codegen_test silently never registers or runs (it's gated on
+      # `MINIC_ENABLE_LLVM AND LLVM_FOUND` in CMakeLists.txt).
+      - name: Configure
+        run: ./scripts/configure.sh
+      - name: Build
+        run: cmake --build build
+      - name: Test
+        run: ctest --test-dir build --output-on-failure

@@ -1,0 +1,28 @@
+name: c-linker CI
+
+on:
+  push:
+    paths:
+      - "c-linker/**"
+      - ".github/workflows/c-linker.yml"
+  pull_request:
+    paths:
+      - "c-linker/**"
+      - ".github/workflows/c-linker.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: c-linker
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Ninja and clang
+        run: sudo apt-get update && sudo apt-get install -y ninja-build clang
+      - name: Configure
+        run: ./scripts/configure.sh
+      - name: Build
+        run: cmake --build build
+      - name: Test
+        run: ctest --test-dir build --output-on-failure

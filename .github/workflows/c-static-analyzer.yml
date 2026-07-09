@@ -1,0 +1,28 @@
+name: c-static-analyzer CI
+
+on:
+  push:
+    paths:
+      - "c-static-analyzer/**"
+      - ".github/workflows/c-static-analyzer.yml"
+  pull_request:
+    paths:
+      - "c-static-analyzer/**"
+      - ".github/workflows/c-static-analyzer.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: c-static-analyzer
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Ninja
+        run: sudo apt-get update && sudo apt-get install -y ninja-build
+      - name: Configure
+        run: ./scripts/configure.sh
+      - name: Build
+        run: cmake --build build
+      - name: Test
+        run: ctest --test-dir build --output-on-failure

@@ -1,0 +1,28 @@
+name: c-preprocessor CI
+
+on:
+  push:
+    paths:
+      - "c-preprocessor/**"
+      - ".github/workflows/c-preprocessor.yml"
+  pull_request:
+    paths:
+      - "c-preprocessor/**"
+      - ".github/workflows/c-preprocessor.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: c-preprocessor
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Ninja
+        run: sudo apt-get update && sudo apt-get install -y ninja-build
+      - name: Configure
+        run: ./scripts/configure.sh
+      - name: Build
+        run: cmake --build build
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
