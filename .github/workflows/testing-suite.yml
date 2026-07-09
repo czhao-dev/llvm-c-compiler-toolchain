@@ -6,8 +6,8 @@ on:
       - "testing/**"
       - "c-preprocessor/src/**"
       - "c-preprocessor/include/**"
-      - "c-compiler-llvm/src/**"
-      - "c-compiler-llvm/include/**"
+      - "c-compiler/src/**"
+      - "c-compiler/include/**"
       - "c-static-analyzer/src/**"
       - "c-static-analyzer/include/**"
       - "c-linter/src/**"
@@ -22,8 +22,8 @@ on:
       - "testing/**"
       - "c-preprocessor/src/**"
       - "c-preprocessor/include/**"
-      - "c-compiler-llvm/src/**"
-      - "c-compiler-llvm/include/**"
+      - "c-compiler/src/**"
+      - "c-compiler/include/**"
       - "c-static-analyzer/src/**"
       - "c-static-analyzer/include/**"
       - "c-linter/src/**"
@@ -61,9 +61,9 @@ jobs:
           cd c-preprocessor
           ./scripts/configure.sh
           cmake --build build
-      - name: Build c-compiler-llvm
+      - name: Build c-compiler
         run: |
-          cd c-compiler-llvm
+          cd c-compiler
           ./scripts/configure.sh
           cmake --build build
       - name: Build c-static-analyzer

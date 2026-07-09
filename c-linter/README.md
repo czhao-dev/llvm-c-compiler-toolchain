@@ -40,7 +40,7 @@ does **not**:
   deliberately out of scope for this MVP.
 
 It ships its own small, tolerant lexer rather than depending on
-`c-compiler-llvm`'s, keeping the subproject independent per this repo's
+`c-compiler`'s, keeping the subproject independent per this repo's
 convention that each piece has its own language, build system, tests, and
 README.
 

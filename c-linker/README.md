@@ -276,7 +276,7 @@ This project is licensed under the MIT License — see [LICENSE](LICENSE) for th
   AMD64 Architecture Processor Supplement* — the normative definitions of
   the object/executable file layout and the `R_X86_64_*` relocation
   semantics this linker implements a subset of.
-- [c-compiler-llvm](../c-compiler-llvm) — the sibling subproject that
+- [c-compiler](../c-compiler) — the sibling subproject that
   currently shells out to `clang` for final binary generation; `c-linker`
   is the piece of this toolchain's own pipeline that step would otherwise
   depend on.

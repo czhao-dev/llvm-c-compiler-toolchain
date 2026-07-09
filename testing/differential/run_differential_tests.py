@@ -5,7 +5,7 @@ For each testing/differential/cases/*.mc file, compiles it with both
 `minic` and `clang -x c` at -O0 and -O2, runs the resulting binaries, and
 asserts stdout + exit code match byte-for-byte.
 
-`.mc` is a genuine subset of C (see c-compiler-llvm/docs/language_spec.md),
+`.mc` is a genuine subset of C (see c-compiler/docs/language_spec.md),
 so clang can compile the same source directly via `-x c`, which forces
 C-mode parsing regardless of the .mc extension -- no copying/symlinking to
 a .c extension needed.

@@ -65,7 +65,7 @@ tooling without going through the command-line interface.
 ## Repo Structure
 
 ```
-c-compiler-llvm/
+c-compiler/
 ├── README.md
 ├── LICENSE
 ├── CMakeLists.txt
@@ -365,7 +365,7 @@ and `ctest` is the only runner a contributor needs. **All 5 suites pass.**
 
 ```
 $ ctest --test-dir build --output-on-failure
-Test project /path/to/c-compiler-llvm/build
+Test project /path/to/c-compiler/build
 
       Start 1: lexer_test
   1/5 Test  #1: lexer_test    ........  Passed    0.06 sec

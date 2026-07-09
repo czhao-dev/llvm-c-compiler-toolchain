@@ -26,7 +26,7 @@ def _binary(subproject: str, relative_path: str) -> Path:
 
 
 def minic() -> Path:
-    return _binary("c-compiler-llvm", "build/minic")
+    return _binary("c-compiler", "build/minic")
 
 
 def c_static_analyzer() -> Path:

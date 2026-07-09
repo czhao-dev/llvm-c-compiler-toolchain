@@ -2,7 +2,7 @@
 //
 // NOTE: this is scoped down from "main.c calls a function defined in
 // math.c" -- minic's CLI only accepts one input file and rejects multiple
-// inputs (see c-compiler-llvm/src/main.cpp's parseArgs, which throws
+// inputs (see c-compiler/src/main.cpp's parseArgs, which throws
 // "multiple input files were provided"). There is no multi-translation-
 // -unit compilation support today, so this case instead exercises
 // multi-function resolution and forward references within one file.

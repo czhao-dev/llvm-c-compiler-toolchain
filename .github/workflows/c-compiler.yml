@@ -1,21 +1,21 @@
-name: c-compiler-llvm CI
+name: c-compiler CI
 
 on:
   push:
     paths:
-      - "c-compiler-llvm/**"
-      - ".github/workflows/c-compiler-llvm.yml"
+      - "c-compiler/**"
+      - ".github/workflows/c-compiler.yml"
   pull_request:
     paths:
-      - "c-compiler-llvm/**"
-      - ".github/workflows/c-compiler-llvm.yml"
+      - "c-compiler/**"
+      - ".github/workflows/c-compiler.yml"
 
 jobs:
   test:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: c-compiler-llvm
+        working-directory: c-compiler
     steps:
       - uses: actions/checkout@v4
       - name: Install Ninja

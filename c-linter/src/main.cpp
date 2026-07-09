@@ -26,7 +26,7 @@ const char *kUsage =
 // Malformed flags (unknown option, bad --max-line-length/--brace-style value)
 // throw here and are treated as exit code 1. A wholly missing input file
 // list is NOT an exception -- it's reported by the caller as exit code 2,
-// matching c-preprocess's/c-compiler-llvm's convention of distinguishing
+// matching c-preprocess's/c-compiler's convention of distinguishing
 // "used the tool wrong" from "the tool ran and found something".
 Options parseArgs(int argc, char **argv) {
     Options opts;

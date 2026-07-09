@@ -1,5 +1,5 @@
 // Pointer assignment, double dereference, and address-of, extending the
-// pattern from c-compiler-llvm/examples/pointer_swap.mc. Diffed against
+// pattern from c-compiler/examples/pointer_swap.mc. Diffed against
 // clang compiling this same source.
 
 void swap(int *a, int *b) {

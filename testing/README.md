@@ -72,7 +72,7 @@ cmake --build build` — nothing in `testing/` builds anything itself.
   ```
 
   This suite's own exploration surfaced two real, pre-existing bugs in
-  `c-compiler-llvm`, documented where discovered rather than fixed here
+  `c-compiler`, documented where discovered rather than fixed here
   (out of scope for a testing/benchmarking task): see the header comments
   in `testing/differential/cases/03_pointers.mc` (an `-O2` codegen bug
   for functions taking an `int **` parameter) and

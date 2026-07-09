@@ -6,7 +6,7 @@
 
 > A minimal C preprocessor: file inclusion, object-like macros, and comment
 > stripping — the small, well-defined slice of `cpp` that a companion tool
-> like `c-compiler-llvm` deliberately leaves out.
+> like `c-compiler` deliberately leaves out.
 
 ---
 
@@ -40,9 +40,9 @@ compilation (`#ifdef`/`#if`/...), or token concatenation/stringification
 `file:line` diagnostic, not a silent no-op — see
 [docs/SPEC.md](docs/SPEC.md) for the exact scope and grammar.
 
-`c-compiler-llvm`, the sibling subproject in this monorepo, explicitly
+`c-compiler`, the sibling subproject in this monorepo, explicitly
 treats preprocessing as a non-goal (see its
-[ROADMAP.md](../c-compiler-llvm/docs/ROADMAP.md)) on the grounds that real
+[ROADMAP.md](../c-compiler/docs/ROADMAP.md)) on the grounds that real
 toolchains split `cpp` out as its own pass ahead of the compiler proper.
 `c-preprocessor` is that separate pass.
 
@@ -316,6 +316,6 @@ This project is licensed under the MIT License — see [LICENSE](LICENSE) for th
   textual pass ahead of the compiler proper.
 
 **This monorepo**
-- [`c-compiler-llvm`](../c-compiler-llvm) — the sibling subproject this
+- [`c-compiler`](../c-compiler) — the sibling subproject this
   tool complements; its `docs/ROADMAP.md` explains why preprocessing is
   explicitly out of its scope.

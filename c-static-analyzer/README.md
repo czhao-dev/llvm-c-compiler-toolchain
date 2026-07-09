@@ -4,7 +4,7 @@
 [![CMake 3.20+](https://img.shields.io/badge/CMake-3.20%2B-064F8C.svg)](https://cmake.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-> A lightweight static analyzer for C code that catches common quality, correctness, and maintainability issues before runtime — built from scratch in C++20 as a sibling to a [MiniC compiler](../c-compiler-llvm) and a [build tool](../build-tool). It only parses (via [tree-sitter](https://tree-sitter.github.io/tree-sitter/)) — it never compiles or executes the code it scans.
+> A lightweight static analyzer for C code that catches common quality, correctness, and maintainability issues before runtime — built from scratch in C++20 as a sibling to a [MiniC compiler](../c-compiler) and a [build tool](../build-tool). It only parses (via [tree-sitter](https://tree-sitter.github.io/tree-sitter/)) — it never compiles or executes the code it scans.
 
 It parses `.c`/`.h` files, walks the resulting syntax tree with six independent rules, and reports file-and-line diagnostics with stable rule IDs (`SA001`–`SA006`), exiting non-zero on findings — suitable for local use or CI.
 

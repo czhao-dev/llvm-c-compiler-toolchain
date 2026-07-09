@@ -21,7 +21,7 @@ const char *kUsage = "usage: c-preprocess <input-file> [-I <dir>]... [-o <output
 // Malformed flags (unknown option, -I/-o missing its argument, more than
 // one positional argument) throw here and are treated as exit code 1.
 // A wholly missing input file is NOT an exception — it's reported by the
-// caller as exit code 2, matching c-compiler-llvm's CLI convention of
+// caller as exit code 2, matching c-compiler's CLI convention of
 // distinguishing "used the tool wrong" from "the tool ran and failed".
 Options parseArgs(int argc, char **argv) {
     Options opts;
