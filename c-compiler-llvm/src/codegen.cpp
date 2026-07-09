@@ -122,12 +122,30 @@ struct LValue {
     Type type = Type::Void;
 };
 
+// Module::setTargetTriple's parameter type changed across LLVM versions
+// (StringRef in LLVM 17, Triple in LLVM 22, with no implicit conversion
+// between the two since Triple's constructors are all explicit) --
+// dispatch at compile time on whichever overload the installed LLVM
+// actually provides, rather than hardcoding a version cutoff. `ModuleT`
+// must be a template parameter (not just `llvm::Module`) for the
+// `requires` check below to be a genuine SFINAE context: a non-dependent
+// `if constexpr (requires {...})` outside a template can still hard-error
+// on the discarded branch instead of just evaluating to false.
+template <typename ModuleT>
+void setModuleTargetTriple(ModuleT &module, const std::string &triple) {
+    if constexpr (requires { module.setTargetTriple(llvm::StringRef(triple)); }) {
+        module.setTargetTriple(llvm::StringRef(triple));
+    } else {
+        module.setTargetTriple(llvm::Triple(triple));
+    }
+}
+
 class CodeGenerator {
 public:
     CodeGenerator(const ProgramNode &program, std::string moduleName, int optLevel)
         : program_(program), context_(), module_(std::make_unique<llvm::Module>(moduleName, context_)),
           builder_(context_), optLevel_(optLevel) {
-        module_->setTargetTriple(llvm::Triple(llvm::sys::getDefaultTargetTriple()));
+        setModuleTargetTriple(*module_, llvm::sys::getDefaultTargetTriple());
     }
 
     std::string generate() {
