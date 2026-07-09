@@ -52,6 +52,25 @@ cmake --build build` — nothing in `testing/` builds anything itself.
   generated chart PNGs under `benchmarks/charts/` are committed, since
   they're the artifacts the root README embeds.
 
+- **`integration/`** — a best-effort, lower-confidence stretch addition,
+  not a load-bearing correctness check: `minic_clinker_smoke.py` proves
+  the repo's own toolchain can link a program without clang anywhere in
+  the link step. minic's CLI has no multi-translation-unit support, so
+  it compiles one `.mc` file defining two functions together via `minic
+  --emit-ir`, splits the resulting LLVM IR text into two modules
+  post-hoc, compiles each independently with `llc
+  -mtriple=x86_64-unknown-linux-gnu`, and links the two `.o` files with
+  the repo's own `c-link`. The output is verified structurally (via
+  `file`, where available) but never executed, matching the convention
+  `c-linker`'s own test suite already establishes (no CRT/`_start`
+  startup code to make execution safe). Runs Linux-only in CI, with
+  `continue-on-error: true` — see
+  `.github/workflows/testing-suite.yml`.
+
+  ```bash
+  python3 testing/integration/minic_clinker_smoke.py
+  ```
+
   This suite's own exploration surfaced two real, pre-existing bugs in
   `c-compiler-llvm`, documented where discovered rather than fixed here
   (out of scope for a testing/benchmarking task): see the header comments
