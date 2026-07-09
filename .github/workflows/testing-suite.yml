@@ -88,6 +88,16 @@ jobs:
       - name: Run differential tests
         run: python3 testing/differential/run_differential_tests.py
 
+      # Stretch/best-effort, not a load-bearing correctness check -- see
+      # the header comment in minic_clinker_smoke.py for why this is
+      # convoluted (no multi-TU support in minic, so it splits one
+      # --emit-ir module's LLVM IR text in two post-hoc) and why it never
+      # executes the binary it produces (c-link has no CRT/_start).
+      - name: Run c-linker integration smoke test
+        if: runner.os == 'Linux'
+        continue-on-error: true
+        run: python3 testing/integration/minic_clinker_smoke.py
+
       - name: Install matplotlib
         if: always()
         continue-on-error: true
