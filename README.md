@@ -125,26 +125,76 @@ compile time
 
 ### Benchmark results
 
+**Key findings:**
+
+- **At `-O2`, execution speed tracks clang closely across all three
+  programs** (within ±8%) — expected, since `-O1`–`-O3` run LLVM's
+  genuine new-pass-manager pipeline (`mem2reg`, `instcombine`,
+  `simplifycfg`, tail-call elimination, loop unrolling), not a
+  hand-rolled approximation of one.
+- **At `-O0` the picture is more mixed**: `bubble_sort` runs 73% slower
+  unoptimized, while `fibonacci` runs 20% *faster* unoptimized than
+  clang's own `-O0` output — a reminder that "no optimizer" doesn't mean
+  "identical codegen," and that this is worth digging into further
+  rather than papering over with an average.
+- **Compile speed is generally slower than clang** on this hardware, not
+  faster — up to ~19× on `bubble_sort -O2`. Real measured numbers, not
+  the "N× faster" claim compiler-project READMEs traditionally reach
+  for, since a hand-typed one would just go stale the next time the code
+  changes.
+- **Building this benchmark suite surfaced two real, pre-existing bugs**
+  in `c-compiler` that nothing had caught before (the `-O2`/`int **` and
+  nested-loop bugs described above), documented at the point of
+  discovery — see [testing/README.md](testing/README.md) for the full
+  writeup. Finding actual bugs is the point of testing infrastructure; a
+  clean bill of health would have been the less interesting outcome.
+
+#### Execution time — the algorithm gauntlet
+
+| Algorithm | Opt | minic | clang | Delta |
+|---|---|---:|---:|---|
+| Bubble sort (5,000 el., reverse-sorted) | `-O0` | 56.8 ms | 32.8 ms | 73% slower |
+| Bubble sort (5,000 el., reverse-sorted) | `-O2` | 8.7 ms | 9.4 ms | **7% faster** |
+| Fibonacci(39), naive recursive | `-O0` | 219.3 ms | 275.4 ms | **20% faster** |
+| Fibonacci(39), naive recursive | `-O2` | 157.6 ms | 161.6 ms | **2% faster** |
+| Sieve of Eratosthenes (N=40,000) | `-O0` | 2.7 ms | 2.5 ms | 8% slower |
+| Sieve of Eratosthenes (N=40,000) | `-O2` | — | 1.4 ms | known bug, see below |
+
+#### Compile time — the toolchain race
+
+| Algorithm | Opt | minic | clang | Delta |
+|---|---|---:|---:|---|
+| Bubble sort | `-O0` | 51.5 ms | 32.2 ms | 1.6× slower |
+| Bubble sort | `-O2` | 710.5 ms | 37.3 ms | 19.0× slower |
+| Fibonacci(39) | `-O0` | 41.9 ms | 31.6 ms | 1.3× slower |
+| Fibonacci(39) | `-O2` | 46.1 ms | 34.8 ms | 1.3× slower |
+| Sieve of Eratosthenes | `-O0` | 157.1 ms | 31.8 ms | 4.9× slower |
+| Sieve of Eratosthenes | `-O2` | — (hangs) | 41.6 ms | known bug, see below |
+
 ![Execution time: minic vs clang](testing/benchmarks/charts/execution_time.png)
 ![Compile time: minic vs clang](testing/benchmarks/charts/compile_time.png)
 
-minic's **execution speed** is roughly at parity with clang across all
-three programs at both `-O0` and `-O2` — expected, since `-O1`–`-O3` run
-LLVM's real optimizer pipeline (see
-[c-compiler](c-compiler/README.md)). **Compile speed** is
-generally slower than clang on the machine these numbers were measured
-on, not faster, most notably `bubble_sort -O2` at roughly 19×; these are
-real measured numbers rather than a hand-typed marketing claim, since
-the latter would just go stale. The missing `minic` bar at `sieve -O2`
-is the compile-hang bug above, rendered as `N/A` rather than silently
-dropped — `run_benchmarks.py` bounds every measurement with a timeout and
-records that combination as a failure rather than hanging the whole
+The missing `minic` bars/rows at `sieve -O2` are the compile-time-hang
+bug mentioned above, rendered as `N/A` rather than silently dropped —
+`run_benchmarks.py` bounds every measurement with an external timeout
+and records that combination as a failure rather than hanging the whole
 suite.
 
-These charts are regenerated manually
-(`python3 testing/benchmarks/plot.py testing/benchmarks/results.json`)
-and committed alongside a normal code change, not auto-committed by CI;
-for the latest numbers from a specific run, see the
+**Methodology:** each number is a
+[hyperfine](https://github.com/sharkdp/hyperfine) mean — 10 measured
+runs (3 warmup) for execution, 3 measured runs (1 warmup) for
+compilation; see `testing/benchmarks/run_benchmarks.py` for the exact
+invocation. Measured on an Apple M3 (macOS 26.5.1), Apple clang 21.0.0,
+hyperfine 1.20.0 — a single-machine snapshot, not a rigorous multi-trial
+statistical study, so read the percentages as directional rather than
+precise to two significant figures.
+
+These numbers and charts are regenerated manually
+(`python3 testing/benchmarks/run_benchmarks.py --output
+testing/benchmarks/results.json && python3
+testing/benchmarks/plot.py testing/benchmarks/results.json`) and
+committed alongside a normal code change, not auto-committed by CI; for
+a fresh run's numbers, see the
 [testing-suite workflow](https://github.com/czhao-dev/llvm-c-compiler-toolchain/actions/workflows/testing-suite.yml)'s
 job summary and uploaded artifact.
 
