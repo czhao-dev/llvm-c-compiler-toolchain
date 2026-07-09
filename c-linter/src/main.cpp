@@ -1,5 +1,6 @@
 #include "diagnostic.h"
 #include "linter.h"
+#include "snippet.h"
 
 #include <fstream>
 #include <iostream>
@@ -15,11 +16,12 @@ struct Options {
     int maxLineLength = 80;
     cl::BraceStyle braceStyle = cl::BraceStyle::KandR;
     bool showHelp = false;
+    bool showSource = false;
 };
 
 const char *kUsage =
     "usage: c-lint <file> [<file>...] [--max-line-length=N] [--brace-style=kr|allman] "
-    "[-h|--help]\n";
+    "[--show-source] [-h|--help]\n";
 
 // Malformed flags (unknown option, bad --max-line-length/--brace-style value)
 // throw here and are treated as exit code 1. A wholly missing input file
@@ -33,6 +35,8 @@ Options parseArgs(int argc, char **argv) {
         std::string arg = argv[i];
         if (arg == "-h" || arg == "--help") {
             opts.showHelp = true;
+        } else if (arg == "--show-source") {
+            opts.showSource = true;
         } else if (arg.rfind("--max-line-length=", 0) == 0) {
             std::string value = arg.substr(std::string("--max-line-length=").size());
             int parsed = 0;
@@ -75,6 +79,23 @@ bool readFile(const std::string &path, std::string &outContents) {
     return true;
 }
 
+// Splits on '\n' without keeping the newline; a trailing partial line (no
+// final '\n') is still included, matching how diagnostics reference it.
+std::vector<std::string> splitLines(const std::string &contents) {
+    std::vector<std::string> lines;
+    std::size_t start = 0;
+    while (start <= contents.size()) {
+        std::size_t end = contents.find('\n', start);
+        if (end == std::string::npos) {
+            lines.push_back(contents.substr(start));
+            break;
+        }
+        lines.push_back(contents.substr(start, end - start));
+        start = end + 1;
+    }
+    return lines;
+}
+
 } // namespace
 
 int main(int argc, char **argv) {
@@ -110,8 +131,14 @@ int main(int argc, char **argv) {
         }
 
         std::vector<cl::Diagnostic> diagnostics = linter.lintSource(contents, path);
+        std::vector<std::string> lines = opts.showSource ? splitLines(contents) : std::vector<std::string>{};
         for (const cl::Diagnostic &diagnostic : diagnostics) {
-            std::cout << cl::format(diagnostic) << "\n";
+            if (opts.showSource && diagnostic.line >= 1 &&
+                static_cast<std::size_t>(diagnostic.line) <= lines.size()) {
+                std::cout << cl::formatWithSource(diagnostic, lines[diagnostic.line - 1]) << "\n";
+            } else {
+                std::cout << cl::format(diagnostic) << "\n";
+            }
         }
         if (!diagnostics.empty()) hadFindings = true;
     }
