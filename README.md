@@ -1,6 +1,12 @@
 # llvm-c-compiler-toolchain
 
+[![testing-suite CI](https://github.com/czhao-dev/llvm-c-compiler-toolchain/actions/workflows/testing-suite.yml/badge.svg)](https://github.com/czhao-dev/llvm-c-compiler-toolchain/actions/workflows/testing-suite.yml)
 [![build-tool CI](https://github.com/czhao-dev/llvm-c-compiler-toolchain/actions/workflows/build-tool.yml/badge.svg)](https://github.com/czhao-dev/llvm-c-compiler-toolchain/actions/workflows/build-tool.yml)
+[![c-preprocessor CI](https://github.com/czhao-dev/llvm-c-compiler-toolchain/actions/workflows/c-preprocessor.yml/badge.svg)](https://github.com/czhao-dev/llvm-c-compiler-toolchain/actions/workflows/c-preprocessor.yml)
+[![c-compiler-llvm CI](https://github.com/czhao-dev/llvm-c-compiler-toolchain/actions/workflows/c-compiler-llvm.yml/badge.svg)](https://github.com/czhao-dev/llvm-c-compiler-toolchain/actions/workflows/c-compiler-llvm.yml)
+[![c-static-analyzer CI](https://github.com/czhao-dev/llvm-c-compiler-toolchain/actions/workflows/c-static-analyzer.yml/badge.svg)](https://github.com/czhao-dev/llvm-c-compiler-toolchain/actions/workflows/c-static-analyzer.yml)
+[![c-linter CI](https://github.com/czhao-dev/llvm-c-compiler-toolchain/actions/workflows/c-linter.yml/badge.svg)](https://github.com/czhao-dev/llvm-c-compiler-toolchain/actions/workflows/c-linter.yml)
+[![c-linker CI](https://github.com/czhao-dev/llvm-c-compiler-toolchain/actions/workflows/c-linker.yml/badge.svg)](https://github.com/czhao-dev/llvm-c-compiler-toolchain/actions/workflows/c-linker.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 A small C toolchain built from scratch, one piece at a time: a preprocessor, a compiler, a static analyzer, a style linter, a build tool, and a linker.
@@ -24,11 +30,11 @@ Each subproject is independent and self-contained — its own language, build sy
 
 **c-preprocessor** — A four-stage pipeline (comment stripper → directive/include line-driver → tokenizer → hide-set-based macro rescanner) built on `libpp_core`, with zero external dependencies. `#include` resolves double-quoted paths relative to the *including* file's directory, then against `-I` search directories in order; circular includes are detected and reported with the full chain, while diamond includes are intentionally left un-deduplicated, since there are no include guards. Recursive macro expansion (a macro's replacement can reference another macro, e.g. `TWO_PI` → `PI * 2` → `3 * 2`) terminates correctly on self-referential and mutually recursive definitions via the standard "blue paint" hide-set algorithm — every token produced by expanding macro `M` carries `M` in its hide set, so an identifier already in its own hide set is emitted literally instead of looping forever, matching real `cpp` behavior on inputs like `#define X X + 1` rather than erroring out. Redefining a macro is last-wins with no diagnostic, a deliberate simplification versus strict C's identical-redefinition requirement, and `#undef` gets correct late-binding for free since macro bodies are stored as raw, unexpanded tokens. Comment stripping replaces a multi-line block comment with the same number of newlines it contained, so line numbers in diagnostics stay accurate straight through it. Function-like macros, conditional compilation (`#ifdef`/`#if`), and `##`/`#` are explicit non-goals — each is a hard `file:line` compile error rather than a silent no-op, and the CLI's own exit codes (`0` success, `1` preprocessing/I/O error, `2` usage error) follow the same convention as every other tool in this toolchain. All 7 test suites pass, including a byte-for-byte golden-output comparison against a multi-file example and a subprocess-level exercise of the CLI.
 
-**MiniC compiler** — A complete four-stage pipeline (lexer → recursive-descent parser → semantic analyzer → LLVM IR generator) compiled into `libminic_core.a` behind a thin CLI, with `--emit-tokens`/`--emit-ast`/`--emit-ir` flags exposing every stage's output for inspection. The language subset covers `int`/`float`/`char`/`void`, pointers (including address-of/dereference and null-pointer comparisons), fixed-size arrays with pointer decay, named structs/unions/enums with first-class whole-value assignment, the full arithmetic/comparison/logical/bitwise/ternary/compound-assignment operator set, and `if`/`while`/`for`/`do`-`while`/`switch`-with-real-fallthrough/`goto`/labels — recursive functions work because the IR generator resolves forward references correctly. The semantic analyzer catches undeclared identifiers, type mismatches, wrong argument counts, and return-type mismatches with precise `file:line:col` diagnostics and source-snippet carets. All five test suites pass, and all nine example programs (fibonacci, fizzbuzz, gcd, pointer swap, array sum, struct point, bit ops, control flow, sum of squares) produce byte-for-byte identical output to `clang` compiling the same source. A targeted correctness review found and fixed four real bugs — misordered assignment diagnostics, a temp-file leak on write failure, missing float-exponent lexing (`1e5`), and a sema/codegen type disagreement on unary negation of `char` — each verified with a regression case. `-O1`/`-O2`/`-O3` run LLVM's real new-pass-manager pipeline (`mem2reg`, `instcombine`, `simplifycfg`, `tailcallelim`, loop unrolling); `-O2` gets `fibonacci(40)` to a measured 1.4× speedup over `-O0` and converts its tail recursion into a loop. The language coverage itself grew through five dependency-ordered tiers — pointers, then arrays (which decay from pointers), then structs/unions/enums (reusing the pointer/GEP machinery), then the extended operator set, then the remaining control-flow forms — each landing with its own tests and example program; casts/`sizeof`, storage qualifiers (`const`/`static`/`extern`/`volatile`), and function prototypes/pointers/true variadics are staged next in `docs/ROADMAP.md`'s language-expansion plan.
+**MiniC compiler** — A complete four-stage pipeline (lexer → recursive-descent parser → semantic analyzer → LLVM IR generator) compiled into `libminic_core.a` behind a thin CLI, with `--emit-tokens`/`--emit-ast`/`--emit-ir` flags exposing every stage's output for inspection. The language subset covers `int`/`float`/`char`/`void`, pointers (including address-of/dereference and null-pointer comparisons), fixed-size arrays with pointer decay, named structs/unions/enums with first-class whole-value assignment, the full arithmetic/comparison/logical/bitwise/ternary/compound-assignment operator set, and `if`/`while`/`for`/`do`-`while`/`switch`-with-real-fallthrough/`goto`/labels — recursive functions work because the IR generator resolves forward references correctly. The semantic analyzer catches undeclared identifiers, type mismatches, wrong argument counts, and return-type mismatches with precise `file:line:col` diagnostics (a single-line `file:line:col: error: message` format — no source-snippet or caret rendering; that's opt-in via `--show-source` on `c-lint`/`c-static-analyzer` instead, see [Testing & Performance](#testing--performance)). All five test suites pass, and all nine example programs (fibonacci, fizzbuzz, gcd, pointer swap, array sum, struct point, bit ops, control flow, sum of squares) produce byte-for-byte identical output to `clang` compiling the same source. A targeted correctness review found and fixed four real bugs — misordered assignment diagnostics, a temp-file leak on write failure, missing float-exponent lexing (`1e5`), and a sema/codegen type disagreement on unary negation of `char` — each verified with a regression case. `-O1`/`-O2`/`-O3` run LLVM's real new-pass-manager pipeline (`mem2reg`, `instcombine`, `simplifycfg`, `tailcallelim`, loop unrolling); `-O2` gets `fibonacci(40)` to a measured 1.4× speedup over `-O0` and converts its tail recursion into a loop. The language coverage itself grew through five dependency-ordered tiers — pointers, then arrays (which decay from pointers), then structs/unions/enums (reusing the pointer/GEP machinery), then the extended operator set, then the remaining control-flow forms — each landing with its own tests and example program; casts/`sizeof`, storage qualifiers (`const`/`static`/`extern`/`volatile`), and function prototypes/pointers/true variadics are staged next in `docs/ROADMAP.md`'s language-expansion plan.
 
-**C static analyzer** — Five rules (`SA001`–`SA005`) covering cyclomatic complexity, unused variables, control-flow nesting depth, non-exhaustive return paths, and unreachable code after `return`/`break`/`continue`/`goto`, built directly against tree-sitter's C API and the `tree-sitter-c` grammar (fetched via CMake `FetchContent` and compiled as plain C static libraries, deliberately bypassing the grammar's own bundled build in favor of compiling its pre-generated `parser.c` directly — the only subproject with an external dependency). File discovery skips common non-project directories (`.git`, `build`, `dist`, `vendor`, `third_party`, ...) by default, and behavior is configurable via CLI flags or a discovered `.c-static-analyzer.toml` (rule selection, complexity/nesting thresholds, exclude globs), with CLI flags always taking precedence over the file. Config discovery walks upward from the scan's working directory through ancestor directories and the nearest file found wins, even one that fails to parse (defaults apply rather than searching further up); an unreadable input file yields a synthetic, unregistered `SA000` diagnostic instead of aborting the whole scan. Adding a new rule is a two-file change (a header implementing the `Rule` interface plus one registration line), by design. 10 test suites pass, including a byte-for-byte golden-output comparison against a fixture engineered to trigger every rule at once, plus a subprocess CLI test asserting the exit-code contract (`0` clean, `1` findings, `2` usage error).
+**C static analyzer** — Six rules (`SA001`–`SA006`) covering cyclomatic complexity, unused variables, control-flow nesting depth, non-exhaustive return paths, unreachable code after `return`/`break`/`continue`/`goto`, and (new) a textual, non-dataflow check for a local read before it's ever written, built directly against tree-sitter's C API and the `tree-sitter-c` grammar (fetched via CMake `FetchContent` and compiled as plain C static libraries, deliberately bypassing the grammar's own bundled build in favor of compiling its pre-generated `parser.c` directly — the only subproject with an external dependency). File discovery skips common non-project directories (`.git`, `build`, `dist`, `vendor`, `third_party`, ...) by default, and behavior is configurable via CLI flags or a discovered `.c-static-analyzer.toml` (rule selection, complexity/nesting thresholds, exclude globs), with CLI flags always taking precedence over the file. Config discovery walks upward from the scan's working directory through ancestor directories and the nearest file found wins, even one that fails to parse (defaults apply rather than searching further up); an unreadable input file yields a synthetic, unregistered `SA000` diagnostic instead of aborting the whole scan. Adding a new rule is a two-file change (a header implementing the `Rule` interface plus one registration line), by design. 12 test suites pass, including a byte-for-byte golden-output comparison against a fixture engineered to trigger every rule at once, plus a subprocess CLI test asserting the exit-code contract (`0` clean, `1` findings, `2` usage error).
 
-**c-linter** — Five rules (`CL001`–`CL005`) covering snake_case naming, line length (80 cols default), trailing whitespace, magic numbers in comparisons, and K&R/Allman brace-style consistency, built on a small hand-written lexer that's deliberately never shared with `c-compiler-llvm`, keeping the subproject independent per this repo's convention. The lexer is tolerant by design — unterminated comments/literals and unmodeled punctuation fall through to a generic token type rather than erroring, since a linter has to process real-world, possibly-broken C it doesn't fully model — and keyword recognition is deliberately minimal too: only `if`/`while` are distinct tokens, every other keyword lexes as a plain identifier, which is safe because every real C keyword is lowercase with no embedded uppercase, so CL001 can never misfire on one. Naming (CL001) is a pure token-level check with no symbol table, so every *occurrence* of a badly-named identifier is flagged, not just its declaration; magic-number detection (CL004) exempts `0`, `1`, and `-1` as common sentinel values and only looks forward from the comparison operator, not backward; brace-style checking (CL005) matches the closing parenthesis of an `if`/`while` condition through nested parens against the placement of the following brace. Line length and trailing whitespace run as a raw-text pass before tokenization even happens. All 7 test suites pass. Reporting only — no auto-fixing, no indentation tracking, and no semantic checks (that boundary belongs to `c-static-analyzer`) — with CI-friendly exit codes (`0`/`1`/`2`).
+**c-linter** — Five rules (`CL001`–`CL005`) covering snake_case naming, line length (80 cols default), trailing whitespace, magic numbers in comparisons, and K&R/Allman brace-style consistency, built on a small hand-written lexer that's deliberately never shared with `c-compiler-llvm`, keeping the subproject independent per this repo's convention. The lexer is tolerant by design — unterminated comments/literals and unmodeled punctuation fall through to a generic token type rather than erroring, since a linter has to process real-world, possibly-broken C it doesn't fully model — and keyword recognition is deliberately minimal too: only `if`/`while` are distinct tokens, every other keyword lexes as a plain identifier, which is safe because every real C keyword is lowercase with no embedded uppercase, so CL001 can never misfire on one. Naming (CL001) is a pure token-level check with no symbol table, so every *occurrence* of a badly-named identifier is flagged, not just its declaration; magic-number detection (CL004) exempts `0`, `1`, and `-1` as common sentinel values and only looks forward from the comparison operator, not backward; brace-style checking (CL005) matches the closing parenthesis of an `if`/`while` condition through nested parens against the placement of the following brace. Line length and trailing whitespace run as a raw-text pass before tokenization even happens. All 8 test suites pass. Reporting only — no auto-fixing, no indentation tracking, and no semantic checks (that boundary belongs to `c-static-analyzer`) — with CI-friendly exit codes (`0`/`1`/`2`).
 
 **build-tool** — Parses a Makefile into rules (explicit prerequisites, tab-indented recipes, `.PHONY` declarations before or after a rule, inline comments), resolves them into a dependency graph via a single recursive depth-first walk that both detects cycles and produces a valid topological order as a side effect (a node's prerequisites are always resolved before the node itself, so no separate scheduling pass is needed), skips up-to-date targets via mtime staleness, and runs outstanding recipes serially with fail-fast or `-k`/`--keep-going` semantics. Memoization guarantees a diamond-shaped shared prerequisite builds exactly once. `-j` parallelism is a deliberate non-goal: it only affects wall-clock build speed, not correctness, so this small tool trades it for a much simpler single-threaded executor with no thread pool or work-stealing queue. Variable expansion (`$(VAR)`, automatic variables), pattern rules (`%.o: %.c`), and built-in Make functions are likewise out of scope, alongside `include` directives, `ifdef`/`ifeq` conditionals, `VPATH`, order-only prerequisites (`|`), static pattern rules, double-colon rules, and target-specific variables — `-n` (dry run) and `-f` (Makefile path override) are recognized on the command line only so they can be rejected with a clear error rather than silently misread as a target name. This implements the core Make mental model (targets, prerequisites, recipes, staleness) precisely rather than a large surface approximately. 22 tests pass across three suites (Makefile parsing, dependency planning, and full binary end-to-end invocations covering a clean re-run and a touch-triggered rebuild), and it's the only subproject with CI wired up so far (path-scoped GitHub Actions workflow, gated on a CMake build and `ctest`).
 
@@ -42,10 +48,80 @@ Each subproject's own `docs/` directory is the normative reference for that stag
 |---|---|---|
 | [c-preprocessor](c-preprocessor/README.md) | [docs/SPEC.md](c-preprocessor/docs/SPEC.md) — directive grammar, hide-set macro semantics, `#include` resolution, CLI/error-format reference | — |
 | [c-compiler-llvm](c-compiler-llvm/README.md) | [docs/language_spec.md](c-compiler-llvm/docs/language_spec.md) — full BNF grammar, type system, implicit-conversion table | [docs/ROADMAP.md](c-compiler-llvm/docs/ROADMAP.md) — staged language-expansion plan (tiers 1–8); [docs/ir_walkthrough.md](c-compiler-llvm/docs/ir_walkthrough.md) — annotated `-O0`/`-O2` LLVM IR for two example programs |
-| [c-static-analyzer](c-static-analyzer/README.md) | [docs/SPEC.md](c-static-analyzer/docs/SPEC.md) — SA001–SA005 rule semantics, config-file discovery, glob-matching rules | — |
+| [c-static-analyzer](c-static-analyzer/README.md) | [docs/SPEC.md](c-static-analyzer/docs/SPEC.md) — SA001–SA006 rule semantics, config-file discovery, glob-matching rules | — |
 | [c-linter](c-linter/README.md) | [docs/SPEC.md](c-linter/docs/SPEC.md) — CL001–CL005 rule semantics, lexer tolerance policy, exemption rationale | — |
 | [build-tool](build-tool/README.md) | [docs/SPEC.md](build-tool/docs/SPEC.md) — Makefile syntax subset, staleness/cycle/fail-fast semantics, explicit non-goals | — |
 | [c-linker](c-linker/README.md) | [docs/SPEC.md](c-linker/docs/SPEC.md) — ELF64 section/symbol model, relocation patch formulas, diagnostic/exit-code table | — |
+
+## Testing & Performance
+
+Each subproject's own `tests/` stays unit/integration-scoped to that one
+tool (see its README's Testing section). A separate top-level
+[testing/](testing/README.md) directory holds suites that are
+cross-cutting by nature and span several subprojects at once:
+
+- **Differential testing** — compiles the same MiniC source with both
+  `minic` and `clang`, runs both binaries, and diffs stdout + exit code
+  byte-for-byte across operator precedence, control flow, pointers, and
+  multi-function programs.
+- **Negative/snapshot testing** — runs `c-lint` and `c-static-analyzer`
+  against fixtures engineered to trigger their guardrails (a snake_case
+  naming violation, a use-before-initialization read caught by the new
+  `SA006` rule) and compares output against frozen golden fixtures.
+- **Benchmarking** — [hyperfine](https://github.com/sharkdp/hyperfine)-driven
+  compile-time and execution-time comparison between `minic` and `clang`
+  across three algorithms (Sieve of Eratosthenes, recursive Fibonacci,
+  worst-case bubble sort).
+- **A stretch integration smoke test** — links a program using the
+  repo's own `c-link`, with no clang anywhere in the link step.
+
+Both `c-lint` and `c-static-analyzer` also gained a `--show-source` flag
+(opt-in, default output unchanged) that prints the offending source line
+and a caret under any diagnostic.
+
+Run the suites locally, after building the relevant subprojects per
+[Getting Started](#getting-started):
+
+```bash
+python3 testing/differential/run_differential_tests.py
+python3 testing/invalid/run_negative_tests.py
+python3 testing/benchmarks/run_benchmarks.py --output testing/benchmarks/results.json   # requires hyperfine
+```
+
+See [testing/README.md](testing/README.md) for the full breakdown,
+including two real, pre-existing `c-compiler-llvm` bugs this exploration
+surfaced and documented rather than fixed: an `-O2` codegen bug for any
+function taking an `int **` parameter
+([testing/differential/cases/03_pointers.mc](testing/differential/cases/03_pointers.mc)),
+and a loop nested inside another loop that crashes at runtime past a
+moderate iteration count and, separately, hangs indefinitely at `-O2`
+compile time
+([testing/benchmarks/programs/sieve.mc](testing/benchmarks/programs/sieve.mc)).
+
+### Benchmark results
+
+![Execution time: minic vs clang](testing/benchmarks/charts/execution_time.png)
+![Compile time: minic vs clang](testing/benchmarks/charts/compile_time.png)
+
+minic's **execution speed** is roughly at parity with clang across all
+three programs at both `-O0` and `-O2` — expected, since `-O1`–`-O3` run
+LLVM's real optimizer pipeline (see
+[c-compiler-llvm](c-compiler-llvm/README.md)). **Compile speed** is
+generally slower than clang on the machine these numbers were measured
+on, not faster, most notably `bubble_sort -O2` at roughly 19×; these are
+real measured numbers rather than a hand-typed marketing claim, since
+the latter would just go stale. The missing `minic` bar at `sieve -O2`
+is the compile-hang bug above, rendered as `N/A` rather than silently
+dropped — `run_benchmarks.py` bounds every measurement with a timeout and
+records that combination as a failure rather than hanging the whole
+suite.
+
+These charts are regenerated manually
+(`python3 testing/benchmarks/plot.py testing/benchmarks/results.json`)
+and committed alongside a normal code change, not auto-committed by CI;
+for the latest numbers from a specific run, see the
+[testing-suite workflow](https://github.com/czhao-dev/llvm-c-compiler-toolchain/actions/workflows/testing-suite.yml)'s
+job summary and uploaded artifact.
 
 ## Getting Started
 
