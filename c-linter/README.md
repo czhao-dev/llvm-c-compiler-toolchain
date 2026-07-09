@@ -63,15 +63,17 @@ c-linter/
 │   ├── naming_rule.h          ← CL001
 │   ├── magic_number_rule.h    ← CL004
 │   ├── brace_style_rule.h     ← CL005, BraceStyle
-│   └── linter.h               ← LinterOptions/Linter orchestration
+│   ├── linter.h               ← LinterOptions/Linter orchestration
+│   └── snippet.h               ← --show-source caret/snippet rendering
 ├── src/
 │   ├── token.cpp, lexer.cpp, diagnostic.cpp, line_rules.cpp,
 │   │   naming_rule.cpp, magic_number_rule.cpp, brace_style_rule.cpp,
-│   │   linter.cpp
+│   │   linter.cpp, snippet.cpp
 │   └── main.cpp                ← CLI
 ├── tests/
 │   ├── lexer_test.cpp, naming_rule_test.cpp, line_rules_test.cpp,
-│   │   magic_number_rule_test.cpp, brace_style_rule_test.cpp  ← in-memory
+│   │   magic_number_rule_test.cpp, brace_style_rule_test.cpp,
+│   │   snippet_test.cpp        ← in-memory
 │   ├── linter_test.cpp         ← fixture/example-based integration test
 │   ├── cli_test.cpp            ← subprocess exercise of c-lint
 │   └── fixtures/               ← kitchen_sink.c, clean.c, allman_style.c, short_line.c
@@ -184,28 +186,30 @@ tolerance policy, and the reasoning behind each exemption.
 
 ## Testing
 
-Seven test executables, built with nothing more than `<cassert>`/manual
-assertions — no external test framework. **All 7 suites pass.**
+Eight test executables, built with nothing more than `<cassert>`/manual
+assertions — no external test framework. **All 8 suites pass.**
 
 ```
 $ ctest --test-dir build --output-on-failure
 Test project .../c-linter/build
     Start 1: lexer_test
-1/7 Test #1: lexer_test .......................   Passed
+1/8 Test #1: lexer_test .......................   Passed
     Start 2: naming_rule_test
-2/7 Test #2: naming_rule_test .................   Passed
+2/8 Test #2: naming_rule_test .................   Passed
     Start 3: line_rules_test
-3/7 Test #3: line_rules_test ..................   Passed
+3/8 Test #3: line_rules_test ..................   Passed
     Start 4: magic_number_rule_test
-4/7 Test #4: magic_number_rule_test ...........   Passed
+4/8 Test #4: magic_number_rule_test ...........   Passed
     Start 5: brace_style_rule_test
-5/7 Test #5: brace_style_rule_test ............   Passed
+5/8 Test #5: brace_style_rule_test ............   Passed
     Start 6: linter_test
-6/7 Test #6: linter_test ......................   Passed
-    Start 7: cli_test
-7/7 Test #7: cli_test .........................   Passed
+6/8 Test #6: linter_test ......................   Passed
+    Start 7: snippet_test
+7/8 Test #7: snippet_test .....................   Passed
+    Start 8: cli_test
+8/8 Test #8: cli_test .........................   Passed
 
-100% tests passed, 0 tests failed out of 7
+100% tests passed, 0 tests failed out of 8
 ```
 
 | Suite | What it checks |
@@ -216,7 +220,8 @@ Test project .../c-linter/build
 | `magic_number_rule_test` | All 6 comparison operators, the 0/1/-1 exemption, hex/octal parsed by value not string form, suffixed literals, non-adjacent and non-integer cases left alone |
 | `brace_style_rule_test` | K&R and Allman in both directions, nested parens in the condition, braceless bodies and `do`/`while` trailers left alone, truncated input not crashing |
 | `linter_test` | Full aggregation/sort contract on a fixture hitting all 5 codes, zero diagnostics on a clean fixture, `LinterOptions` overrides changing results, structural checks against `examples/sample.c` |
-| `cli_test` | Subprocess exercise of the built `c-lint` binary: usage/exit codes, multi-file runs, a missing file alongside a valid one, `--max-line-length`, `--brace-style`, `--help`, malformed flags |
+| `snippet_test` | Caret column alignment (including column 1), `formatWithSource`'s full header+snippet output |
+| `cli_test` | Subprocess exercise of the built `c-lint` binary: usage/exit codes, multi-file runs, a missing file alongside a valid one, `--max-line-length`, `--brace-style`, `--show-source`, `--help`, malformed flags |
 
 ---
 
@@ -243,8 +248,22 @@ ctest --test-dir build --output-on-failure
 # Use Allman brace style instead of the K&R default
 ./build/c-lint file.c --brace-style=allman
 
+# Also print the offending source line and a caret under each diagnostic
+./build/c-lint file.c --show-source
+
 # Usage
 ./build/c-lint --help
+```
+
+`--show-source` is purely additive — it appends a two-line snippet under
+each diagnostic without changing the default single-line output, so
+scripts parsing the default format are unaffected:
+
+```
+$ c-lint examples/sample.c --show-source
+examples/sample.c:5:8: warning: identifier 'Stack' should be snake_case [CL001]
+struct Stack {
+       ^
 ```
 
 Exit codes: `0` if every file opened and no diagnostics were produced,

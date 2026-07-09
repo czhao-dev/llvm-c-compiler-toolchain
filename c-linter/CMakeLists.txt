@@ -15,6 +15,7 @@ add_library(cl_core
     src/magic_number_rule.cpp
     src/brace_style_rule.cpp
     src/linter.cpp
+    src/snippet.cpp
 )
 target_include_directories(cl_core PUBLIC include)
 target_compile_features(cl_core PUBLIC cxx_std_20)
@@ -50,6 +51,10 @@ target_compile_definitions(linter_test PRIVATE
     CL_FIXTURES_DIR="${CMAKE_SOURCE_DIR}/tests/fixtures"
     CL_EXAMPLES_DIR="${CMAKE_SOURCE_DIR}/examples")
 add_test(NAME linter_test COMMAND linter_test)
+
+add_executable(snippet_test tests/snippet_test.cpp)
+target_link_libraries(snippet_test PRIVATE cl_core)
+add_test(NAME snippet_test COMMAND snippet_test)
 
 add_executable(cli_test tests/cli_test.cpp)
 add_dependencies(cli_test c-lint)

@@ -170,6 +170,20 @@ int main() {
         expect(r.err.find("unknown option") != std::string::npos, "unknown option message expected");
     }
 
+    // --show-source adds a source-line + caret snippet under each
+    // diagnostic, without changing default (no-flag) output.
+    {
+        RunResult withoutFlag = run({fixture("kitchen_sink.c")});
+        expect(withoutFlag.out.find("^") == std::string::npos,
+               "default output should not contain a caret");
+
+        RunResult withFlag = run({"--show-source", fixture("kitchen_sink.c")});
+        expect(withFlag.exitCode == withoutFlag.exitCode, "--show-source should not change the exit code");
+        expect(withFlag.out.find("^") != std::string::npos, "--show-source output should contain a caret");
+        expect(withFlag.out.find("[CL001]") != std::string::npos,
+               "--show-source output should still contain rule codes");
+    }
+
     // Malformed --max-line-length values are rejected.
     {
         RunResult r = run({"--max-line-length=notanumber", fixture("clean.c")});
