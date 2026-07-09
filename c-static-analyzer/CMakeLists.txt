@@ -51,6 +51,7 @@ add_library(sa_core
     src/visitor.cpp
     src/analyzer.cpp
     src/cli.cpp
+    src/snippet.cpp
     src/rules/sa001_complexity.cpp
     src/rules/sa002_unused_variables.cpp
     src/rules/sa003_nesting.cpp
@@ -102,6 +103,10 @@ add_test(NAME sa005_unreachable_code_test COMMAND sa005_unreachable_code_test)
 add_executable(sa006_uninitialized_variable_test tests/sa006_uninitialized_variable_test.cpp)
 target_link_libraries(sa006_uninitialized_variable_test PRIVATE sa_core)
 add_test(NAME sa006_uninitialized_variable_test COMMAND sa006_uninitialized_variable_test)
+
+add_executable(snippet_test tests/snippet_test.cpp)
+target_link_libraries(snippet_test PRIVATE sa_core)
+add_test(NAME snippet_test COMMAND snippet_test)
 
 add_executable(golden_test tests/golden_test.cpp)
 add_dependencies(golden_test c-static-analyzer)

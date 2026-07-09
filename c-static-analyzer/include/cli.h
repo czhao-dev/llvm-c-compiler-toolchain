@@ -19,6 +19,7 @@ struct ScanArgs {
     std::vector<std::string> exclude;
     bool noConfig = false;
     bool showHelp = false;
+    bool showSource = false;
 };
 
 // Thrown for a malformed CLI invocation (unrecognized subcommand, unknown

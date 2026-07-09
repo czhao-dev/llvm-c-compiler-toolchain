@@ -1,11 +1,14 @@
 #include "cli.h"
 
 #include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <sstream>
+#include <unordered_map>
 
 #include "analyzer.h"
 #include "diagnostic.h"
+#include "snippet.h"
 
 namespace sa {
 
@@ -14,7 +17,24 @@ namespace {
 const char *kUsage =
     "usage: c-static-analyzer scan [paths...] [--max-complexity N] [--max-nesting N]\n"
     "                              [--select SA001,SA002] [--exclude PATTERN]...\n"
-    "                              [--no-config] [-h|--help]\n";
+    "                              [--no-config] [--show-source] [-h|--help]\n";
+
+// Splits on '\n' without keeping the newline; a trailing partial line (no
+// final '\n') is still included, matching how diagnostics reference it.
+std::vector<std::string> splitLines(const std::string &contents) {
+    std::vector<std::string> lines;
+    std::size_t start = 0;
+    while (start <= contents.size()) {
+        std::size_t end = contents.find('\n', start);
+        if (end == std::string::npos) {
+            lines.push_back(contents.substr(start));
+            break;
+        }
+        lines.push_back(contents.substr(start, end - start));
+        start = end + 1;
+    }
+    return lines;
+}
 
 std::string trim(const std::string &s) {
     static const char *kWhitespace = " \t\r\n";
@@ -66,6 +86,8 @@ ScanArgs parseArgs(const std::vector<std::string> &args) {
             result.exclude.push_back(args[++i]);
         } else if (arg == "--no-config") {
             result.noConfig = true;
+        } else if (arg == "--show-source") {
+            result.showSource = true;
         } else if (!arg.empty() && arg.front() == '-') {
             throw CliError("unknown flag '" + arg + "'");
         } else {
@@ -109,8 +131,31 @@ int runScan(const ScanArgs &args) {
 
     Config config = buildConfig(args);
     std::vector<Diagnostic> diagnostics = analyzePaths(paths, config);
+
+    // Diagnostics are a flat, globally-sorted list decoupled from any open
+    // file, so --show-source needs its own on-demand per-path line cache
+    // rather than reusing anything from the scan itself.
+    std::unordered_map<std::string, std::vector<std::string>> lineCache;
     for (const auto &diagnostic : diagnostics) {
-        std::cout << toString(diagnostic) << "\n";
+        if (!args.showSource) {
+            std::cout << toString(diagnostic) << "\n";
+            continue;
+        }
+
+        auto it = lineCache.find(diagnostic.path);
+        if (it == lineCache.end()) {
+            std::ifstream in(diagnostic.path, std::ios::binary);
+            std::ostringstream ss;
+            ss << in.rdbuf();
+            it = lineCache.emplace(diagnostic.path, splitLines(ss.str())).first;
+        }
+        const std::vector<std::string> &lines = it->second;
+
+        if (diagnostic.line >= 1 && diagnostic.line <= lines.size()) {
+            std::cout << formatWithSource(diagnostic, lines[diagnostic.line - 1]) << "\n";
+        } else {
+            std::cout << toString(diagnostic) << "\n";
+        }
     }
 
     if (diagnostics.empty()) return 0;

@@ -464,20 +464,14 @@ IR listings explaining each transformation.
 
 ## Error Messages
 
-A compiler is only as good as its error messages. MiniC reports errors with
-the source line number and a clear description:
+A compiler is only as good as its error messages. MiniC reports errors as a
+single `file:line:col: error: message` line — no source-line snippet or
+caret, just a precise location and a clear description:
 
 ```
-fibonacci.mc:3:12: error: use of undeclared variable 'nn'
-    if (nn <= 1) {
-        ^~
+fibonacci.mc:2:9: error: use of undeclared variable 'nn'
 fibonacci.mc:8:5: error: return type mismatch — expected 'int', got 'float'
-    return 1.5;
-    ^~~~~~
-fibonacci.mc:12:20: error: wrong number of arguments to 'fibonacci' —
-                    expected 1, got 2
-    return fibonacci(n - 1, n - 2) + fibonacci(n - 2);
-           ^~~~~~~~~~
+fibonacci.mc:12:20: error: wrong number of arguments to 'fibonacci' — expected 1, got 2
 ```
 
 ---

@@ -117,6 +117,22 @@ int main() {
         expect(r.out.empty(), "--select SA001 should produce no stdout for this file");
     }
 
+    // show_source_adds_a_snippet_without_changing_default_output
+    {
+        std::filesystem::path dir = scratchDir();
+        std::filesystem::path file = dir / "bad.c";
+        writeFile(file, "int classify(int x) {\n    if (x > 0) {\n        return 1;\n    }\n}\n");
+
+        RunResult withoutFlag = run({"scan", file.string(), "--no-config"});
+        expect(withoutFlag.out.find("^") == std::string::npos, "default output should not contain a caret");
+
+        RunResult withFlag = run({"scan", file.string(), "--no-config", "--show-source"});
+        expect(withFlag.exitCode == withoutFlag.exitCode, "--show-source should not change the exit code");
+        expect(withFlag.out.find("^") != std::string::npos, "--show-source output should contain a caret");
+        expect(withFlag.out.find("SA004") != std::string::npos,
+               "--show-source output should still contain rule codes");
+    }
+
     // missing_path_exits_two
     {
         RunResult r = run({"scan", "/no/such/path.c", "--no-config"});

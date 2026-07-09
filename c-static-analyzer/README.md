@@ -50,6 +50,7 @@ c-static-analyzer/
 │   ├── diagnostic.h              # Diagnostic struct, ordering, toString()
 │   ├── fnmatch.h                 # glob matching for exclude patterns
 │   ├── visitor.h                 # shared tree-sitter C-API traversal helpers
+│   ├── snippet.h                 # --show-source caret/snippet rendering
 │   └── rules/
 │       ├── rule.h                # Rule interface
 │       └── sa00N_*.h             # one header per rule
@@ -108,17 +109,32 @@ example.c:3: SA006 Local variable `result` may be used before being initialized
 1 issue(s) found.
 ```
 
+Pass `--show-source` to additionally print the offending source line and a
+caret under any diagnostic — purely additive, the default single-line
+output above is unchanged:
+
+```
+$ c-static-analyzer scan example.c --no-config --select SA006 --show-source
+example.c:3:12: SA006 Local variable `result` may be used before being initialized
+    return result;
+           ^
+
+1 issue(s) found.
+```
+
 ## Usage
 
 ```
 c-static-analyzer scan [paths...] [--max-complexity N] [--max-nesting N]
                        [--select SA001,SA002] [--exclude PATTERN]... [--no-config]
+                       [--show-source]
 ```
 
 | Flag | Default | Description |
 |------|---------|-------------|
 | `--max-complexity N` | `10` | Cyclomatic complexity threshold |
 | `--max-nesting N` | `4` | Control flow nesting depth threshold |
+| `--show-source` | off | Also print the source line and a caret under each diagnostic |
 | `--select SA001,SA002` | all | Run only the specified rule IDs |
 | `--exclude PATTERN` | — | Glob pattern to exclude (repeatable) |
 | `--no-config` | — | Ignore `.c-static-analyzer.toml` |
@@ -172,7 +188,7 @@ Makefile/C source text
   visitor.{h,cpp} ── shared CST traversal helpers (walk, loc, functionName)
      │
      ▼
-  rules/sa00N_*.{h,cpp} ── five independent rules, each returning
+  rules/sa00N_*.{h,cpp} ── six independent rules, each returning
   │                        Diagnostic values
      ▼
   diagnostic.{h,cpp} ── sorted output (path, line, col, ruleId, message)
@@ -185,7 +201,7 @@ Unlike the original Rust implementation (which used tree-sitter's Rust bindings)
 
 ## Testing
 
-11 test suites, run with `ctest`.
+12 test suites, run with `ctest`.
 
 | Suite | What it checks |
 |---|---|
@@ -198,18 +214,19 @@ Unlike the original Rust implementation (which used tree-sitter's Rust bindings)
 | `sa004_missing_return_test` | Missing-`else` detection, exhaustive if/else(-if), void functions, infinite loops with/without `break` |
 | `sa005_unreachable_code_test` | Code after `return`/`break` (including inside loops and `case` bodies) |
 | `sa006_uninitialized_variable_test` | Read-before-write detection, initializer/array/underscore exemptions, field-by-field struct writes |
+| `snippet_test` | Caret column alignment (0-indexed), `formatWithSource`'s 1-indexed display column + snippet output |
 | `golden_test` | Byte-for-byte comparison against [examples/sample_issues.c](examples/sample_issues.c)'s frozen expected output |
-| `cli_test` | Subprocess exercise of the real binary: clean exit 0, findings exit 1, `--select` filtering, missing path exit 2 |
+| `cli_test` | Subprocess exercise of the real binary: clean exit 0, findings exit 1, `--select` filtering, `--show-source`, missing path exit 2 |
 
 ```bash
 $ ctest --test-dir build --output-on-failure
 Test project c-static-analyzer/build
       Start  1: fnmatch_test
- 1/11 Test  #1: fnmatch_test .....................   Passed
+ 1/12 Test  #1: fnmatch_test .....................   Passed
       ...
-11/11 Test #11: cli_test .........................   Passed
+12/12 Test #12: cli_test .........................   Passed
 
-100% tests passed, 0 tests failed out of 11
+100% tests passed, 0 tests failed out of 12
 ```
 
 Running the analyzer on [examples/sample_issues.c](examples/sample_issues.c) (a file written to trigger every rule) confirms end-to-end behavior:
