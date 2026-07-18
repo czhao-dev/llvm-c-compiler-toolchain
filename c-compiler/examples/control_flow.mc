@@ -15,7 +15,11 @@ int classify(int n) {
 int main() {
     int i = 0;
     do {
-        printf("classify(%d)=%d\n", i, classify(i));
+        print_str("classify(");
+        print_int(i);
+        print_str(")=");
+        print_int(classify(i));
+        print_str("\n");
         i++;
     } while (i < 4);
 
@@ -25,7 +29,9 @@ retry:
     if (n < 3) {
         goto retry;
     }
-    printf("n=%d\n", n);
+    print_str("n=");
+    print_int(n);
+    print_str("\n");
 
     int count = 0;
     for (int j = 0; j < 6; j++) {
@@ -38,7 +44,9 @@ retry:
             break;
         }
     }
-    printf("count=%d\n", count);
+    print_str("count=");
+    print_int(count);
+    print_str("\n");
 
     return 0;
 }

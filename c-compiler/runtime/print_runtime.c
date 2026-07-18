@@ -9,6 +9,8 @@
 // own formatting explicitly (e.g. `print_str("\n")`), matching how the
 // examples previously spelled out "\n" in printf format strings.
 
+#include "print_runtime.h"
+
 #include <stdio.h>
 
 void print_int(int x) { printf("%d", x); }

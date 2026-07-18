@@ -8,7 +8,8 @@ int fibonacci(int n) {
 int main() {
     int i = 0;
     while (i < 10) {
-        printf("%d\n", fibonacci(i));
+        print_int(fibonacci(i));
+        print_str("\n");
         i = i + 1;
     }
     return 0;

@@ -35,6 +35,10 @@ int main() {
     struct Point p = makeOrigin();
     move(&p, EAST, 5);
     move(&p, NORTH, 3);
-    printf("(%d, %d)\n", p.x, p.y);
+    print_str("(");
+    print_int(p.x);
+    print_str(", ");
+    print_int(p.y);
+    print_str(")\n");
     return 0;
 }

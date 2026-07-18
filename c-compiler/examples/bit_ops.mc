@@ -20,11 +20,18 @@ int main() {
     int total = 0;
     for (i = 0; i < 5; i++) {
         int bits = countBits(values[i]);
-        printf("%d has %d bits set\n", values[i], bits);
+        print_int(values[i]);
+        print_str(" has ");
+        print_int(bits);
+        print_str(" bits set\n");
         total += bits;
     }
 
-    printf("total=%d\n", total);
-    printf("clamped=%d\n", total > 5 ? total : 5);
+    print_str("total=");
+    print_int(total);
+    print_str("\n");
+    print_str("clamped=");
+    print_int(total > 5 ? total : 5);
+    print_str("\n");
     return 0;
 }

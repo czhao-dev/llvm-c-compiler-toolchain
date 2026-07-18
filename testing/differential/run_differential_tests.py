@@ -25,6 +25,14 @@ from common.proc import run  # noqa: E402
 
 CASES_DIR = Path(__file__).resolve().parent / "cases"
 OPT_LEVELS = ["-O0", "-O2"]
+# The four print_int/print_float/print_char/print_str builtins .mc cases
+# call are real C, defined here and linked into both toolchains' outputs:
+# minic's own compileToNative() links this file in automatically, and this
+# harness does the same for the clang side below, so both sides resolve
+# the same symbols the same way.
+RUNTIME_DIR = Path(__file__).resolve().parents[2] / "c-compiler" / "runtime"
+RUNTIME_SOURCE = RUNTIME_DIR / "print_runtime.c"
+RUNTIME_HEADER = RUNTIME_DIR / "print_runtime.h"
 
 
 def find_clang() -> str:
@@ -45,21 +53,22 @@ def run_case(case_path: Path, minic_bin: Path, clang_bin: str, opt: str, tmpdir:
     if minic_compile.exit_code != 0:
         return [f"{case_path.name} {opt}: minic failed to compile:\n{minic_compile.stderr}"]
 
-    # MiniC examples call printf() with no #include <stdio.h> (it has no
-    # standard-library headers). Recent clang treats a known library
-    # function called without a prototype as a hard error unconditionally
-    # (not just under newer -std defaults), so it has to be silenced
-    # explicitly rather than worked around with -std alone.
+    # MiniC cases call print_int/print_float/print_char/print_str with no
+    # #include (MiniC has no preprocessor); -include gives clang their
+    # prototypes the same way minic's own codegen already knows their
+    # signatures, and the runtime source is compiled and linked in
+    # alongside the case so the symbols actually resolve.
     clang_compile = run(
         [
             clang_bin,
             "-x",
             "c",
             "-std=c99",
-            "-Wno-implicit-function-declaration",
-            "-Wno-implicit-int",
+            "-include",
+            str(RUNTIME_HEADER),
             opt,
             str(case_path),
+            str(RUNTIME_SOURCE),
             "-o",
             str(clang_exe),
         ],
