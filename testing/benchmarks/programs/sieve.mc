@@ -50,6 +50,7 @@ int main() {
         p = p + 1;
     }
 
-    printf("%d\n", count);
+    print_int(count);
+    print_str("\n");
     return 0;
 }
