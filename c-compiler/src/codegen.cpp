@@ -751,8 +751,16 @@ private:
         if (const auto *incDec = dynamic_cast<const IncDecExprNode *>(&expr)) {
             return emitIncDec(*incDec);
         }
+        if (const auto *cast = dynamic_cast<const CastExprNode *>(&expr)) {
+            return emitCast(*cast);
+        }
 
         throw std::runtime_error(locationString(expr.location) + ": unsupported expression in codegen");
+    }
+
+    TypedValue emitCast(const CastExprNode &expr) {
+        TypedValue operand = emitExpr(*expr.operand);
+        return {castNumeric(operand.value, operand.type, expr.targetType), expr.targetType};
     }
 
     TypedValue emitTernary(const TernaryExprNode &expr) {

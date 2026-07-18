@@ -275,6 +275,22 @@ public:
     bool isPrefix;
 };
 
+// `(type)operand` — an explicit numeric cast. Parsed only when a `(` is
+// immediately followed by a type keyword (int/float/char/void), which
+// fully disambiguates it from a parenthesized expression since MiniC has
+// no typedefs. Sema restricts `targetType` to numeric types (pointer/
+// aggregate casts are an explicit non-goal for now); codegen reuses the
+// same pairwise numeric conversion assignment/argument-passing already
+// uses.
+class CastExprNode : public ExprNode {
+public:
+    CastExprNode(SourceLocation location, Type targetType, ExprPtr operand);
+    void print(std::ostream &out, int indent) const override;
+
+    Type targetType;
+    ExprPtr operand;
+};
+
 // ---------------------------------------------------------------------------
 // Statements
 // ---------------------------------------------------------------------------

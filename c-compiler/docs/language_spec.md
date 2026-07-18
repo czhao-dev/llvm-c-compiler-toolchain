@@ -352,7 +352,13 @@ additive     ::= multiplicative (("+" | "-") multiplicative)*
 multiplicative ::= unary (("*" | "/") unary)*
 unary        ::= ("!" | "-" | "&" | "*" | "~") unary
                | ("++" | "--") unary
+               | "(" numeric_type ")" unary
                | postfix
+// Only int/float/char/void — not struct/union/enum tags — start a cast,
+// and MiniC has no typedefs, so a type keyword immediately after "("
+// unambiguously means a cast rather than a parenthesized expression; no
+// backtracking is needed. Pointer/aggregate casts are not supported.
+numeric_type ::= "int" | "float" | "char" | "void"
 postfix      ::= primary ( "[" expression "]" | "." identifier | "->" identifier
                           | "++" | "--" )*
 primary      ::= int_lit | float_lit | char_lit | string_lit
@@ -393,6 +399,26 @@ comma-separated lists, not applications of the comma operator.
 already-updated value) and a postfix form (parsed in `postfix`, producing
 the value *before* the update); both require an lvalue operand and mutate
 it as a side effect, same as in C.
+
+### Casts
+
+`(int)`/`(float)`/`(char)` explicitly convert a numeric operand to the
+named type, with the same truncation/widening rules as an implicit
+numeric assignment (see [Implicit Conversions](#implicit-conversions)
+below) — a cast is how code opts into a conversion that table doesn't
+allow implicitly. `(void)expr` and casts to/from a `struct`/`union` are
+rejected by sema; pointer casts are not yet supported at all (`type`'s
+grammar production only allows a cast to `int`/`float`/`char`/`void`, not
+a pointer type). Casts are right-associative, so `(int)(float)x` parses as
+`(int)((float)x)`, applying the inner cast first.
+
+```c
+float f = 1.9;
+int x = (int)f;      // 1 -- truncates toward zero, same as an implicit
+                      // float -> int assignment would
+char c = (char)x;
+int back = (int)(float)x;  // chained casts
+```
 
 ---
 

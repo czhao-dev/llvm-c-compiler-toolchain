@@ -738,6 +738,19 @@ ExprPtr Parser::parseUnary() {
                                                 /*isIncrement=*/opTok.type == TokenType::PlusPlus,
                                                 /*isPrefix=*/true);
     }
+    // `(type)expr` — a cast. MiniC has no typedefs, so seeing a type
+    // keyword (not struct/union/enum; see CastExprNode's doc comment in
+    // ast.h) immediately after '(' fully disambiguates this from a
+    // parenthesized expression with no backtracking needed. Right-
+    // associative via the parseUnary() recursion, so `(int)(float)x`
+    // chains naturally.
+    if (check(TokenType::LeftParen) && isTypeToken(peek(1).type)) {
+        const Token &parenTok = advance();
+        Type targetType = parseType();
+        expect(TokenType::RightParen, "expected ')' after cast type");
+        ExprPtr operand = parseUnary();
+        return std::make_unique<CastExprNode>(parenTok.location, targetType, std::move(operand));
+    }
     return parsePostfix();
 }
 

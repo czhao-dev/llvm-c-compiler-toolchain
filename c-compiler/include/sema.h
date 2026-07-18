@@ -107,6 +107,7 @@ private:
     Type checkMember(const MemberExprNode &expr);
     Type checkTernary(const TernaryExprNode &expr);
     Type checkIncDec(const IncDecExprNode &expr);
+    Type checkCast(const CastExprNode &expr);
 
     // Checks that a value of type `value` may be stored into (or returned
     // as, or passed as an argument of) type `target`. Reports an error for

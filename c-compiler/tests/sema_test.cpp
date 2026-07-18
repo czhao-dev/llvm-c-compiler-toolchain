@@ -665,5 +665,38 @@ int main() {
         assert(hasError(diags, "redefinition of function 'f'"));
     }
 
+    // Numeric casts (any direction) are legal with no diagnostic.
+    {
+        const auto diags = analyzeSource(
+            "int main() {\n"
+            "    float f = 1.5;\n"
+            "    int x = (int)f;\n"
+            "    char c = (char)x;\n"
+            "    float back = (float)c;\n"
+            "    return x;\n"
+            "}\n");
+        assert(diags.empty());
+    }
+
+    // A cast to void is an error.
+    {
+        const auto diags = analyzeSource("int main() {\n"
+                                          "    int x = (void)1;\n"
+                                          "    return x;\n"
+                                          "}\n");
+        assert(hasError(diags, "cannot cast 'int' to 'void'"));
+    }
+
+    // A cast to/from an aggregate type is an error.
+    {
+        const auto diags = analyzeSource("struct point { int x; int y; };\n"
+                                          "int main() {\n"
+                                          "    struct point p;\n"
+                                          "    int x = (int)p;\n"
+                                          "    return 0;\n"
+                                          "}\n");
+        assert(hasError(diags, "cannot cast 'struct point' to 'int'"));
+    }
+
     return 0;
 }

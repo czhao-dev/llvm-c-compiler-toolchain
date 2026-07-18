@@ -198,6 +198,15 @@ void IncDecExprNode::print(std::ostream &out, int indent) const {
     target->print(out, indent + 1);
 }
 
+CastExprNode::CastExprNode(SourceLocation location, Type targetType, ExprPtr operand)
+    : ExprNode(std::move(location)), targetType(targetType), operand(std::move(operand)) {}
+
+void CastExprNode::print(std::ostream &out, int indent) const {
+    printIndent(out, indent);
+    out << "Cast <" << typeName(targetType) << ">\n";
+    operand->print(out, indent + 1);
+}
+
 // ---------------------------------------------------------------------------
 // Statements
 // ---------------------------------------------------------------------------

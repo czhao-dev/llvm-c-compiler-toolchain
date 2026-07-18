@@ -465,5 +465,29 @@ int main() {
         assert(threw);
     }
 
+    // `(type)expr` casts parse as a CastExprNode, right-associatively
+    // chaining when repeated, and don't disturb plain parenthesized
+    // expressions (no type keyword right after '(').
+    {
+        auto program = parseSource("int main() {\n"
+                                    "    float f = 1.5;\n"
+                                    "    int x = (int)f;\n"
+                                    "    int y = (int)(float)x;\n"
+                                    "    int z = (x + 1);\n"
+                                    "    return 0;\n"
+                                    "}\n");
+        std::ostringstream out;
+        program.print(out);
+        const std::string ast = out.str();
+        assert(ast.find("Cast <int>") != std::string::npos);
+        // Two separate `Cast <int>` sites: `(int)f` and the outer cast of
+        // `(int)(float)x`; a plain parenthesized `(x + 1)` should not
+        // itself print as any Cast node.
+        std::size_t firstCast = ast.find("Cast <int>");
+        std::size_t secondCast = ast.find("Cast <int>", firstCast + 1);
+        assert(secondCast != std::string::npos);
+        assert(ast.find("Cast <float>") != std::string::npos);
+    }
+
     return 0;
 }

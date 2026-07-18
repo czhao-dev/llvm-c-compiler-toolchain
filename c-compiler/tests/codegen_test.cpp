@@ -140,6 +140,22 @@ int main() {
         std::filesystem::remove(path);
     }
 
+    // `(type)expr` casts truncate/widen the same way castNumeric's other
+    // callers (assignment, argument-passing) already do.
+    {
+        const std::string path = writeTempSource("int main() {\n"
+                                                   "    float f = 1.9;\n"
+                                                   "    printf(\"%d\\n\", (int)f);\n"
+                                                   "    int n = 3;\n"
+                                                   "    printf(\"%f\\n\", (float)n);\n"
+                                                   "    char c = (char)65;\n"
+                                                   "    printf(\"%d\\n\", (int)c);\n"
+                                                   "    return 0;\n"
+                                                   "}\n");
+        assert(compileAndRun(path) == "1\n3.000000\n65\n");
+        std::filesystem::remove(path);
+    }
+
     return 0;
 #endif
 }

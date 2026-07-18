@@ -115,9 +115,11 @@ scope is fully supported; anything outside scope is a clear compile error.
 `int`, `float`, `char`, `void` (for function return types only), pointers to
 any of those (`int *`, `float **`, ...), fixed-size single-dimension arrays
 (`int arr[10]`), and named structs/unions/enums (`struct Point`, `union
-Number`, `enum Color`). Not yet supported: casts, `sizeof`, storage classes,
-function prototypes. `volatile` is an explicit non-goal, not a staged
-feature — it's rejected with a targeted parser diagnostic.
+Number`, `enum Color`), and numeric casts (`(int)`/`(float)`/`(char)`,
+right-associative, no pointer/aggregate casts). Not yet supported:
+`sizeof`, storage classes, function prototypes. `volatile` is an explicit
+non-goal, not a staged feature — it's rejected with a targeted parser
+diagnostic.
 
 **Variables and pointers**
 Local variable declarations with initializers (`int x = 5;`),

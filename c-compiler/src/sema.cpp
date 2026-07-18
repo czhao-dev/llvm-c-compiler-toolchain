@@ -539,6 +539,9 @@ Type SemanticAnalyzer::checkExpr(const ExprNode &expr) {
     if (const auto *incDec = dynamic_cast<const IncDecExprNode *>(&expr)) {
         return checkIncDec(*incDec);
     }
+    if (const auto *cast = dynamic_cast<const CastExprNode *>(&expr)) {
+        return checkCast(*cast);
+    }
     return Type::Int;
 }
 
@@ -822,6 +825,19 @@ Type SemanticAnalyzer::checkIncDec(const IncDecExprNode &expr) {
         return Type::Int;
     }
     return targetType;
+}
+
+Type SemanticAnalyzer::checkCast(const CastExprNode &expr) {
+    const Type operandType = checkExpr(*expr.operand);
+
+    // Numeric casts only for now (int/float/char in any direction, the
+    // exact legality castNumeric's codegen already implements pairwise).
+    // Pointer/aggregate casts are an explicit out-of-scope follow-up, not
+    // a silent decision never to support them -- see docs/language_spec.md.
+    if (!isNumericType(expr.targetType) || !isNumericType(operandType)) {
+        error(expr.location, "cannot cast '" + typeName(operandType) + "' to '" + typeName(expr.targetType) + "'");
+    }
+    return expr.targetType;
 }
 
 void SemanticAnalyzer::checkAssignable(const SourceLocation &location, Type target, Type value,
