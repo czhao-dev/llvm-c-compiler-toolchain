@@ -1,5 +1,6 @@
 #include "rules/sa004_missing_return.h"
 
+#include "cfg.h"
 #include "visitor.h"
 
 namespace sa {
@@ -20,86 +21,18 @@ bool isVoidFunction(TSNode func, const std::string &source) {
     return false;
 }
 
-std::vector<TSNode> blockStmts(TSNode node, bool hasNode) {
-    if (!hasNode) return {};
-    if (nodeKind(node) == "compound_statement") return namedChildren(node);
-    return {node};
-}
-
-bool isOneOf(const std::string &kind, std::initializer_list<const char *> options) {
-    for (const char *option : options) {
-        if (kind == option) return true;
-    }
-    return false;
-}
-
-std::string trimParensAndSpaces(const std::string &s) {
-    auto isTrimChar = [](char c) { return c == '(' || c == ')' || c == ' '; };
-    std::size_t start = 0;
-    std::size_t end = s.size();
-    while (start < end && isTrimChar(s[start])) ++start;
-    while (end > start && isTrimChar(s[end - 1])) --end;
-    return s.substr(start, end - start);
-}
-
-bool stmtAlwaysExits(TSNode stmt, const std::string &source);
-
-bool alwaysExits(TSNode node, bool hasNode, const std::string &source) {
-    std::vector<TSNode> stmts = blockStmts(node, hasNode);
-    if (stmts.empty()) return false;
-    return stmtAlwaysExits(stmts.back(), source);
-}
-
-// Whether a `break` targeting THIS loop/switch appears in `stmts` (not
-// crossing into a nested loop/switch's own scope).
-bool containsBreak(const std::vector<TSNode> &stmts) {
-    for (TSNode stmt : stmts) {
-        std::string kind = nodeKind(stmt);
-        if (kind == "break_statement") return true;
-        if (isOneOf(kind, {"for_statement", "while_statement", "do_statement", "switch_statement"})) {
-            continue;
-        }
-        if (kind == "compound_statement") {
-            if (containsBreak(namedChildren(stmt))) return true;
-            continue;
-        }
-        for (const char *field : {"consequence", "body"}) {
-            TSNode child = childByField(stmt, field);
-            if (!ts_node_is_null(child) && containsBreak(blockStmts(child, true))) return true;
-        }
-        TSNode alternative = childByField(stmt, "alternative");
-        if (!ts_node_is_null(alternative) && ts_node_named_child_count(alternative) > 0) {
-            TSNode inner = ts_node_named_child(alternative, 0);
-            if (containsBreak(blockStmts(inner, true))) return true;
+// Whether the function can fall off the end of its body without an
+// explicit `return`: true iff `exit()` has an incoming Fallthrough edge
+// (as opposed to a `return`'s Unconditional edge) whose source block is
+// itself reachable from entry.
+bool canFallOffEnd(const CFG &cfg) {
+    const std::vector<bool> &reachable = cfg.reachableFromEntry();
+    for (std::size_t id = 0; id < cfg.blockCount(); ++id) {
+        if (!reachable[id]) continue;
+        for (const CFGEdge &edge : cfg.block(id).successors) {
+            if (edge.target == cfg.exit() && edge.kind == EdgeKind::Fallthrough) return true;
         }
     }
-    return false;
-}
-
-bool stmtAlwaysExits(TSNode stmt, const std::string &source) {
-    std::string kind = nodeKind(stmt);
-    if (kind == "return_statement") return true;
-
-    if (kind == "if_statement") {
-        TSNode alternative = childByField(stmt, "alternative");
-        if (ts_node_is_null(alternative) || ts_node_named_child_count(alternative) == 0) return false;
-        TSNode inner = ts_node_named_child(alternative, 0);
-        TSNode consequence = childByField(stmt, "consequence");
-        return alwaysExits(consequence, !ts_node_is_null(consequence), source) &&
-               alwaysExits(inner, true, source);
-    }
-
-    if (isOneOf(kind, {"while_statement", "do_statement"})) {
-        TSNode condition = childByField(stmt, "condition");
-        bool isInfinite = false;
-        if (!ts_node_is_null(condition)) {
-            std::string text = trimParensAndSpaces(nodeText(condition, source));
-            isInfinite = (text == "1" || text == "true");
-        }
-        TSNode body = childByField(stmt, "body");
-        return isInfinite && !containsBreak(blockStmts(body, !ts_node_is_null(body)));
-    }
-
     return false;
 }
 
@@ -116,7 +49,10 @@ std::vector<Diagnostic> MissingReturn::check(const TSTree *tree, const std::stri
         if (isVoidFunction(func, source)) continue;
 
         TSNode body = childByField(func, "body");
-        if (!alwaysExits(body, !ts_node_is_null(body), source)) {
+        if (ts_node_is_null(body)) continue;
+
+        CFG cfg = buildCFG(body, source);
+        if (canFallOffEnd(cfg)) {
             auto [line, col] = loc(func);
             Diagnostic d;
             d.path = path;
