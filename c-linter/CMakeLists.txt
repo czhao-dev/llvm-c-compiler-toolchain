@@ -22,6 +22,7 @@ target_compile_features(cl_core PUBLIC cxx_std_20)
 
 add_executable(c-lint src/main.cpp)
 target_link_libraries(c-lint PRIVATE cl_core)
+target_include_directories(c-lint SYSTEM PRIVATE third_party)
 
 enable_testing()
 
