@@ -61,6 +61,7 @@ add_library(sa_core
     src/rules/sa006_uninitialized_variable.cpp
 )
 target_include_directories(sa_core PUBLIC include)
+target_include_directories(sa_core SYSTEM PRIVATE third_party)
 target_compile_features(sa_core PUBLIC cxx_std_20)
 target_link_libraries(sa_core PUBLIC tree-sitter tree_sitter_c_grammar)
 

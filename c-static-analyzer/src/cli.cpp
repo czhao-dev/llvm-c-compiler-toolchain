@@ -6,6 +6,7 @@
 #include <sstream>
 #include <unordered_map>
 
+#include "CLI11.hpp"
 #include "analyzer.h"
 #include "diagnostic.h"
 #include "snippet.h"
@@ -58,41 +59,63 @@ std::int64_t parseInt64(const std::string &value, const std::string &flagName) {
 } // namespace
 
 ScanArgs parseArgs(const std::vector<std::string> &args) {
-    ScanArgs result;
+    CLI::App app{"c-static-analyzer"};
+    app.set_help_flag(); // disable CLI11's own auto --help everywhere;
+                          // -h/--help below just sets a bool instead of
+                          // throwing, matching the original tool's single
+                          // shared kUsage text regardless of where --help
+                          // was seen.
+    bool topHelp = false;
+    app.add_flag("-h,--help", topHelp);
 
-    if (!args.empty() && (args[0] == "-h" || args[0] == "--help")) {
+    CLI::App *scan = app.add_subcommand("scan");
+    scan->set_help_flag();
+    scan->allow_extras(true); // positionals/unknown-flag detection stay
+                               // hand-written below via remaining(), so
+                               // existing error text is preserved exactly.
+
+    ScanArgs result;
+    bool scanHelp = false;
+    scan->add_flag("-h,--help", scanHelp);
+    scan->add_flag("--no-config", result.noConfig);
+    scan->add_flag("--show-source", result.showSource);
+
+    std::string maxComplexityValue;
+    std::string maxNestingValue;
+    std::string selectValue;
+    scan->add_option("--max-complexity", maxComplexityValue);
+    scan->add_option("--max-nesting", maxNestingValue);
+    scan->add_option("--select", selectValue);
+    scan->add_option("--exclude", result.exclude);
+
+    try {
+        std::vector<std::string> reversed(args.rbegin(), args.rend());
+        app.parse(reversed);
+    } catch (const CLI::ParseError &e) {
+        throw CliError(e.what());
+    }
+
+    if (topHelp) {
         result.showHelp = true;
         return result;
     }
-    if (args.empty() || args[0] != "scan") {
+    if (!app.got_subcommand(scan)) {
         throw CliError("expected 'scan' subcommand");
     }
+    if (scanHelp) {
+        result.showHelp = true;
+        return result;
+    }
 
-    for (std::size_t i = 1; i < args.size(); ++i) {
-        const std::string &arg = args[i];
-        if (arg == "-h" || arg == "--help") {
-            result.showHelp = true;
-        } else if (arg == "--max-complexity") {
-            if (i + 1 >= args.size()) throw CliError("--max-complexity requires a value");
-            result.maxComplexity = parseInt64(args[++i], "--max-complexity");
-        } else if (arg == "--max-nesting") {
-            if (i + 1 >= args.size()) throw CliError("--max-nesting requires a value");
-            result.maxNesting = parseInt64(args[++i], "--max-nesting");
-        } else if (arg == "--select") {
-            if (i + 1 >= args.size()) throw CliError("--select requires a value");
-            result.select = args[++i];
-        } else if (arg == "--exclude") {
-            if (i + 1 >= args.size()) throw CliError("--exclude requires a value");
-            result.exclude.push_back(args[++i]);
-        } else if (arg == "--no-config") {
-            result.noConfig = true;
-        } else if (arg == "--show-source") {
-            result.showSource = true;
-        } else if (!arg.empty() && arg.front() == '-') {
+    if (!maxComplexityValue.empty()) result.maxComplexity = parseInt64(maxComplexityValue, "--max-complexity");
+    if (!maxNestingValue.empty()) result.maxNesting = parseInt64(maxNestingValue, "--max-nesting");
+    if (!selectValue.empty()) result.select = selectValue;
+
+    for (const std::string &arg : scan->remaining()) {
+        if (!arg.empty() && arg.front() == '-') {
             throw CliError("unknown flag '" + arg + "'");
-        } else {
-            result.paths.push_back(arg);
         }
+        result.paths.push_back(arg);
     }
 
     return result;
