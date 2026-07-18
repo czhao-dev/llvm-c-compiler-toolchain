@@ -10,6 +10,7 @@ float sum_of_squares(int n) {
 }
 
 int main() {
-    printf("%f\n", sum_of_squares(100));
+    print_float(sum_of_squares(100));
+    print_str("\n");
     return 0;
 }

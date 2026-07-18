@@ -119,10 +119,10 @@ int main() {
                                                    "    int x = 1;\n"
                                                    "}\n"
                                                    "int main() {\n"
-                                                   "    printf(\"%d\\n\", noReturn());\n"
+                                                   "    print_int(noReturn());\n"
                                                    "    return 0;\n"
                                                    "}\n");
-        assert(compileAndRun(path) == "0\n");
+        assert(compileAndRun(path) == "0");
         std::filesystem::remove(path);
     }
 
@@ -133,10 +133,10 @@ int main() {
     {
         const std::string path = writeTempSource("int main() {\n"
                                                    "    int x;\n"
-                                                   "    printf(\"%d\\n\", x);\n"
+                                                   "    print_int(x);\n"
                                                    "    return 0;\n"
                                                    "}\n");
-        assert(compileAndRun(path) == "0\n");
+        assert(compileAndRun(path) == "0");
         std::filesystem::remove(path);
     }
 
@@ -145,20 +145,22 @@ int main() {
     {
         const std::string path = writeTempSource("int main() {\n"
                                                    "    float f = 1.9;\n"
-                                                   "    printf(\"%d\\n\", (int)f);\n"
+                                                   "    print_int((int)f);\n"
+                                                   "    print_str(\"\\n\");\n"
                                                    "    int n = 3;\n"
-                                                   "    printf(\"%f\\n\", (float)n);\n"
+                                                   "    print_float((float)n);\n"
+                                                   "    print_str(\"\\n\");\n"
                                                    "    char c = (char)65;\n"
-                                                   "    printf(\"%d\\n\", (int)c);\n"
+                                                   "    print_int((int)c);\n"
                                                    "    return 0;\n"
                                                    "}\n");
-        assert(compileAndRun(path) == "1\n3.000000\n65\n");
+        assert(compileAndRun(path) == "1\n3.000000\n65");
         std::filesystem::remove(path);
     }
 
     // The fixed-arity print_int/print_float/print_char/print_str builtins
     // (runtime/print_runtime.c, linked into every minic-produced binary)
-    // work standalone and alongside printf, which is still registered too.
+    // work together in one program.
     {
         const std::string path = writeTempSource("int main() {\n"
                                                    "    print_int(42);\n"
@@ -167,10 +169,10 @@ int main() {
                                                    "    print_str(\"\\n\");\n"
                                                    "    print_char('X');\n"
                                                    "    print_str(\"\\n\");\n"
-                                                   "    printf(\"%d still works\\n\", 7);\n"
+                                                   "    print_str(\"done\");\n"
                                                    "    return 0;\n"
                                                    "}\n");
-        assert(compileAndRun(path) == "42\n3.500000\nX\n7 still works\n");
+        assert(compileAndRun(path) == "42\n3.500000\nX\ndone");
         std::filesystem::remove(path);
     }
 

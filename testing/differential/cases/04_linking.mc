@@ -21,8 +21,11 @@ int compute(int a, int b) {
 }
 
 int main() {
-    printf("%d\n", add(3, 4));
-    printf("%d\n", square(5));
-    printf("%d\n", compute(3, 4));
+    print_int(add(3, 4));
+    print_str("\n");
+    print_int(square(5));
+    print_str("\n");
+    print_int(compute(3, 4));
+    print_str("\n");
     return 0;
 }

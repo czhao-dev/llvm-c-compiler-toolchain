@@ -152,7 +152,6 @@ public:
         collectAggregates();
         collectEnumConstants();
         collectSignatures();
-        declarePrintf();
         declarePrintBuiltins();
         declareFunctions();
 
@@ -178,7 +177,6 @@ public:
 
 private:
     void collectSignatures() {
-        functions_.emplace("printf", FunctionSignature{Type::Int, {}, true});
         functions_.emplace("print_int", FunctionSignature{Type::Void, {Type::Int}, false});
         functions_.emplace("print_float", FunctionSignature{Type::Void, {Type::Float}, false});
         functions_.emplace("print_char", FunctionSignature{Type::Void, {Type::Char}, false});
@@ -281,13 +279,6 @@ private:
         default: break;
         }
         return llvm::Type::getVoidTy(context_);
-    }
-
-    void declarePrintf() {
-        auto *printfType = llvm::FunctionType::get(llvm::Type::getInt32Ty(context_),
-                                                   {llvm::PointerType::getUnqual(context_)},
-                                                   true);
-        llvm::Function::Create(printfType, llvm::Function::ExternalLinkage, "printf", module_.get());
     }
 
     // Declares the four fixed-arity print builtins as ordinary non-
@@ -1092,11 +1083,7 @@ private:
         std::vector<llvm::Value *> args;
         for (std::size_t i = 0; i < expr.args.size(); ++i) {
             TypedValue arg = emitExpr(*expr.args[i]);
-            if (sig.isVariadic) {
-                args.push_back(castForPrintf(arg.value, arg.type));
-            } else {
-                args.push_back(castForStore(arg.value, arg.type, sig.paramTypes[i]));
-            }
+            args.push_back(castForStore(arg.value, arg.type, sig.paramTypes[i]));
         }
 
         llvm::Value *call = builder_.CreateCall(callee, args,
@@ -1163,16 +1150,6 @@ private:
                                      "' to '" + typeName(to) + "' in codegen");
         }
         return castNumeric(value, from, to);
-    }
-
-    llvm::Value *castForPrintf(llvm::Value *value, Type type) {
-        if (type == Type::Float) {
-            return builder_.CreateFPExt(value, llvm::Type::getDoubleTy(context_), "printfdouble");
-        }
-        if (type == Type::Char) {
-            return builder_.CreateSExt(value, llvm::Type::getInt32Ty(context_), "printfchar");
-        }
-        return value;
     }
 
     llvm::Value *toBool(TypedValue value) {

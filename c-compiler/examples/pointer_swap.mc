@@ -14,16 +14,26 @@ int increment(int *p) {
 int main() {
     int x = 3;
     int y = 7;
-    printf("before: x=%d y=%d\n", x, y);
+    print_str("before: x=");
+    print_int(x);
+    print_str(" y=");
+    print_int(y);
+    print_str("\n");
 
     swap(&x, &y);
-    printf("after: x=%d y=%d\n", x, y);
+    print_str("after: x=");
+    print_int(x);
+    print_str(" y=");
+    print_int(y);
+    print_str("\n");
 
-    printf("incremented: %d\n", increment(&x));
+    print_str("incremented: ");
+    print_int(increment(&x));
+    print_str("\n");
 
     int *p = &x;
     if (p) {
-        printf("p is non-null\n");
+        print_str("p is non-null\n");
     }
     return 0;
 }

@@ -20,10 +20,13 @@ int main() {
 
     i = 0;
     while (i < 5) {
-        printf("%d\n", values[i]);
+        print_int(values[i]);
+        print_str("\n");
         i = i + 1;
     }
 
-    printf("sum=%d\n", sum(values, 5));
+    print_str("sum=");
+    print_int(sum(values, 5));
+    print_str("\n");
     return 0;
 }

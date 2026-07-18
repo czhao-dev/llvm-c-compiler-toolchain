@@ -28,12 +28,16 @@ int factorial(int n) {
 int main() {
     int i = -15;
     while (i <= 15) {
-        printf("%d\n", classify(i));
+        print_int(classify(i));
+        print_str("\n");
         i += 5;
     }
 
     for (i = 1; i <= 6; i++) {
-        printf("%d! = %d\n", i, factorial(i));
+        print_int(i);
+        print_str("! = ");
+        print_int(factorial(i));
+        print_str("\n");
     }
 
     int count = 0;
@@ -42,7 +46,11 @@ int main() {
         count++;
         n += count;
     } while (count < 5);
-    printf("count=%d n=%d\n", count, n);
+    print_str("count=");
+    print_int(count);
+    print_str(" n=");
+    print_int(n);
+    print_str("\n");
 
     return 0;
 }

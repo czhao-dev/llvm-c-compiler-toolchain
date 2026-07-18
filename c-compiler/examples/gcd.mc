@@ -8,6 +8,7 @@ int gcd(int a, int b) {
 }
 
 int main() {
-    printf("%d\n", gcd(252, 105));
+    print_int(gcd(252, 105));
+    print_str("\n");
     return 0;
 }

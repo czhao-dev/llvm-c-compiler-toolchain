@@ -71,10 +71,12 @@ if(MINIC_ENABLE_LLVM AND LLVM_FOUND)
         foreach(prog fibonacci fizzbuzz gcd sum_of_squares pointer_swap array_sum struct_point bit_ops control_flow)
             add_custom_command(
                 OUTPUT ${CMAKE_BINARY_DIR}/${prog}_clang
-                COMMAND ${CLANG_EXECUTABLE} -x c -include stdio.h
+                COMMAND ${CLANG_EXECUTABLE} -x c -include ${CMAKE_SOURCE_DIR}/runtime/print_runtime.h
                         ${CMAKE_SOURCE_DIR}/examples/${prog}.mc
+                        ${CMAKE_SOURCE_DIR}/runtime/print_runtime.c
                         -o ${CMAKE_BINARY_DIR}/${prog}_clang
-                DEPENDS ${CMAKE_SOURCE_DIR}/examples/${prog}.mc
+                DEPENDS ${CMAKE_SOURCE_DIR}/examples/${prog}.mc ${CMAKE_SOURCE_DIR}/runtime/print_runtime.c
+                        ${CMAKE_SOURCE_DIR}/runtime/print_runtime.h
                 VERBATIM
             )
             add_custom_command(

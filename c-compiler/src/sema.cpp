@@ -108,13 +108,11 @@ std::vector<Diagnostic> SemanticAnalyzer::analyze(const ProgramNode &program) {
     tagNames_.clear();
     enumConstants_.clear();
 
-    // printf is a built-in: it accepts any argument types and returns int,
-    // matching the C standard library signature.
-    functions_.emplace("printf", FunctionSignature{Type::Int, {}, /*isVariadic=*/true});
-    // Fixed-arity print builtins (runtime/print_runtime.c) -- the
-    // idiomatic MiniC way to print, now that printf's free char->int/
-    // float->double argument promotion no longer aligns with strict
-    // conversion rules for a hypothetical fixed-signature printf.
+    // Fixed-arity print builtins (runtime/print_runtime.c) -- the only way
+    // to print in MiniC. printf is deliberately not a builtin: as a
+    // variadic function it would bypass strict argument type-checking the
+    // same way it used to (see checkAssignable's narrowing rules), which
+    // defeats the point of strict nominal typing.
     functions_.emplace("print_int", FunctionSignature{Type::Void, {Type::Int}, false});
     functions_.emplace("print_float", FunctionSignature{Type::Void, {Type::Float}, false});
     functions_.emplace("print_char", FunctionSignature{Type::Void, {Type::Char}, false});
@@ -216,8 +214,8 @@ void SemanticAnalyzer::checkTypeIsValid(const SourceLocation &location, Type typ
 
 void SemanticAnalyzer::collectSignatures(const ProgramNode &program) {
     for (const auto &func : program.functions) {
-        if (func->name == "printf" || func->name == "print_int" || func->name == "print_float" ||
-            func->name == "print_char" || func->name == "print_str") {
+        if (func->name == "print_int" || func->name == "print_float" || func->name == "print_char" ||
+            func->name == "print_str") {
             error(func->location, "cannot redefine built-in function '" + func->name + "'");
             continue;
         }
