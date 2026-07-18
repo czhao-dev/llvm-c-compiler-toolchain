@@ -49,6 +49,7 @@ add_library(sa_core
     src/fnmatch.cpp
     src/config.cpp
     src/visitor.cpp
+    src/cfg.cpp
     src/analyzer.cpp
     src/cli.cpp
     src/snippet.cpp
@@ -79,6 +80,10 @@ add_test(NAME config_test COMMAND config_test)
 add_executable(analyzer_test tests/analyzer_test.cpp)
 target_link_libraries(analyzer_test PRIVATE sa_core)
 add_test(NAME analyzer_test COMMAND analyzer_test)
+
+add_executable(cfg_test tests/cfg_test.cpp)
+target_link_libraries(cfg_test PRIVATE sa_core)
+add_test(NAME cfg_test COMMAND cfg_test)
 
 add_executable(sa001_complexity_test tests/sa001_complexity_test.cpp)
 target_link_libraries(sa001_complexity_test PRIVATE sa_core)
