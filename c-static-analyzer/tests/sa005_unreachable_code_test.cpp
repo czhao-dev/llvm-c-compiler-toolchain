@@ -47,7 +47,15 @@ int main() {
         std::vector<sa::Diagnostic> diagnostics = check(
             "void f(void) {\n    for (int i = 0; i < 10; i++) {\n        break;\n        "
             "printf(\"%d\", i);\n    }\n}\n");
-        expect(diagnostics.size() == 1, "code after break should be flagged");
+        // The CFG-based rewrite correctly flags two things here, not one:
+        // the printf (textually after the break) and the loop's own `i++`
+        // update clause -- since the body unconditionally breaks on its
+        // first statement, the update clause can never actually run
+        // either. The old textual-adjacency heuristic could only see the
+        // former (the update clause isn't textually adjacent to `break` in
+        // the same block), so this is a deliberate behavior improvement,
+        // not a regression.
+        expect(diagnostics.size() == 2, "code after break and the now-unreachable loop update should be flagged");
     }
 
     // flags_code_after_return_in_case
