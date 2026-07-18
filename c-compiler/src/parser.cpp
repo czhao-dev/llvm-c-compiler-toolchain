@@ -111,7 +111,11 @@ bool Parser::isTypeToken(TokenType type) const {
 }
 
 bool Parser::startsType(TokenType type) const {
-    return isTypeToken(type) || type == TokenType::Struct || type == TokenType::Union || type == TokenType::Enum;
+    // `Volatile` is included so a `volatile ...` statement is routed into
+    // declaration/type parsing, where parseType() reports a targeted "not
+    // supported" diagnostic instead of a generic "unexpected token" one.
+    return isTypeToken(type) || type == TokenType::Struct || type == TokenType::Union ||
+           type == TokenType::Enum || type == TokenType::Volatile;
 }
 
 Type Parser::tokenToType(TokenType type) const {
@@ -141,6 +145,8 @@ Type Parser::parseType() {
     } else if (isTypeToken(headTok.type)) {
         advance();
         base = tokenToType(headTok.type);
+    } else if (headTok.type == TokenType::Volatile) {
+        error(headTok, "'volatile' is not supported by MiniC (explicit non-goal, not a staged feature)");
     } else {
         error(headTok, "expected a type");
     }
@@ -301,6 +307,7 @@ StmtPtr Parser::parseStatement() {
     case TokenType::Struct:
     case TokenType::Union:
     case TokenType::Enum:
+    case TokenType::Volatile:
         return parseVarDecl();
     case TokenType::If:
         return parseIf();

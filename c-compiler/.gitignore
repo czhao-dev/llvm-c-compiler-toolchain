@@ -15,6 +15,3 @@ a.out
 # MiniC generated outputs
 *.ll
 *.bc
-
-# Personal project notes
-docs/ROADMAP.md

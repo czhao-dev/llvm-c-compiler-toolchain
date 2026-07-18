@@ -49,8 +49,6 @@ runnable binary.
 **All phases are implemented, tested, and cross-validated against clang.**
 `minic <file.mc>` compiles straight to a native binary; `minic <file.mc> -O2`
 runs LLVM's full optimization pipeline first. See
-[docs/ROADMAP.md](docs/ROADMAP.md) for the phase-by-phase build plan and the
-language-coverage roadmap, and
 [Testing & Validation](#testing--validation) below for what's actually been verified.
 
 **CLI flags:** `--emit-tokens`, `--emit-ast`, `--emit-ir`,
@@ -102,7 +100,6 @@ c-compiler/
 │   ├── bit_ops.mc
 │   └── control_flow.mc
 └── docs/
-    ├── ROADMAP.md           ← build plan + language-coverage roadmap
     ├── language_spec.md     ← BNF grammar + type rules
     └── ir_walkthrough.md    ← annotated IR for each example program
 ```
@@ -118,8 +115,9 @@ scope is fully supported; anything outside scope is a clear compile error.
 `int`, `float`, `char`, `void` (for function return types only), pointers to
 any of those (`int *`, `float **`, ...), fixed-size single-dimension arrays
 (`int arr[10]`), and named structs/unions/enums (`struct Point`, `union
-Number`, `enum Color`). See [docs/ROADMAP.md](docs/ROADMAP.md) for what's
-still missing (casts, `sizeof`, storage classes, function prototypes).
+Number`, `enum Color`). Not yet supported: casts, `sizeof`, storage classes,
+function prototypes. `volatile` is an explicit non-goal, not a staged
+feature — it's rejected with a targeted parser diagnostic.
 
 **Variables and pointers**
 Local variable declarations with initializers (`int x = 5;`),

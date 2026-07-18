@@ -421,8 +421,8 @@ without a separate "pointee type" concept.
   `NULL` macro since MiniC has no preprocessor).
 - A pointer may be used directly as an `if`/`while` condition: true when
   non-null.
-- Pointer arithmetic (`p + 1`) and array indexing are not yet supported —
-  see [docs/ROADMAP.md](ROADMAP.md) for the arrays tier that adds them.
+- Pointer arithmetic (`p + 1`) is not yet supported. Array indexing
+  (`arr[i]`) is supported — see the [Arrays](#arrays) section below.
 
 ```c
 int x = 5;

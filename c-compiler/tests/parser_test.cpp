@@ -451,5 +451,19 @@ int main() {
         assert(threw);
     }
 
+    // `volatile` is an explicit non-goal (concurrency-adjacent scope creep)
+    // and gets a targeted diagnostic rather than a generic parse error.
+    {
+        bool threw = false;
+        try {
+            parseSource("int main() { volatile int x; return 0; }");
+        } catch (const std::exception &ex) {
+            threw = true;
+            const std::string message = ex.what();
+            assert(message.find("not supported") != std::string::npos);
+        }
+        assert(threw);
+    }
+
     return 0;
 }
