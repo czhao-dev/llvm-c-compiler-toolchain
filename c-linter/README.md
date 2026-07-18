@@ -54,7 +54,7 @@ c-linter/
 ├── LICENSE
 ├── CMakeLists.txt
 ├── scripts/
-│   └── configure.sh          ← cmake -S . -B build -G Ninja (no external deps)
+│   └── configure.sh          ← cmake -S . -B build -G Ninja (no external deps at configure time)
 ├── include/
 │   ├── token.h                ← TokenType/SourceLocation/Token
 │   ├── lexer.h                ← tolerant, never-throws Lexer
