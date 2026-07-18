@@ -859,9 +859,16 @@ void SemanticAnalyzer::checkAssignable(const SourceLocation &location, Type targ
         return;
     }
 
-    if (value == Type::Float && target != Type::Float) {
-        warning(location, context + ": implicit conversion from 'float' to '" + typeName(target) +
-                               "' may lose precision");
+    // Only safe widenings stay implicit: char -> int (sign-extends, never
+    // loses information) and int/char -> float. Every other numeric
+    // conversion (int -> char, float -> int, float -> char) is narrowing
+    // and now requires an explicit cast — see the Implicit Conversions
+    // table in docs/language_spec.md.
+    const bool isSafeWidening = (value == Type::Char && target == Type::Int) ||
+                                 (target == Type::Float && (value == Type::Int || value == Type::Char));
+    if (!isSafeWidening) {
+        error(location, context + ": cannot implicitly convert '" + typeName(value) + "' to '" +
+                             typeName(target) + "'; use an explicit cast");
     }
 }
 

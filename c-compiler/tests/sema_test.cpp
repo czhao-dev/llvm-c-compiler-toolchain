@@ -184,15 +184,25 @@ int main() {
         assert(hasError(diags, "cannot convert 'void' to 'int'"));
     }
 
-    // Assigning a float to an int is a narrowing-conversion warning, not an error.
+    // Assigning a float to an int implicitly is a narrowing conversion and
+    // now a hard error -- strict nominal typing requires an explicit cast.
     {
         const auto diags = analyzeSource(
             "int main() {\n"
             "    int x = 1.5;\n"
             "    return x;\n"
             "}\n");
-        assert(hasWarning(diags, "implicit conversion from 'float' to 'int' may lose precision"));
-        assert(errorCount(diags) == 0);
+        assert(hasError(diags, "cannot implicitly convert 'float' to 'int'; use an explicit cast"));
+    }
+
+    // ...and an explicit cast makes the same narrowing conversion legal.
+    {
+        const auto diags = analyzeSource(
+            "int main() {\n"
+            "    int x = (int)1.5;\n"
+            "    return x;\n"
+            "}\n");
+        assert(diags.empty());
     }
 
     // break/continue outside of a loop is an error.

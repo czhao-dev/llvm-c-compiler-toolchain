@@ -414,8 +414,8 @@ a pointer type). Casts are right-associative, so `(int)(float)x` parses as
 
 ```c
 float f = 1.9;
-int x = (int)f;      // 1 -- truncates toward zero, same as an implicit
-                      // float -> int assignment would
+int x = (int)f;      // 1 -- truncates toward zero; `int x = f;` with no
+                      // cast is a compile error (see Implicit Conversions)
 char c = (char)x;
 int back = (int)(float)x;  // chained casts
 ```
@@ -672,13 +672,21 @@ in a `for` loop's update clause: `for (...; ...; i++, j--)`.
 
 ### Implicit Conversions
 
+Only safe *widenings* convert implicitly; every narrowing conversion is a
+hard error and requires an explicit [cast](#casts). This is a deliberate
+divergence from C, which allows any numeric conversion to happen
+implicitly (with only a compiler warning, if that) — MiniC treats
+narrowing as something the programmer must opt into explicitly, in the
+name of predictability.
+
 | Context | Allowed | Diagnostic |
 |---------|---------|-----------|
-| `int` ← `float` | yes, truncation | warning: narrowing conversion |
-| `char` ← `int` | yes, truncation | warning: narrowing conversion |
-| `char` ← `float` | yes, double truncation | warning: narrowing conversion |
-| `int` ← `char` | yes, sign-extends | no warning |
-| `float` ← `int` | yes, widens | no warning |
+| `int` ← `float` | no | error: use an explicit cast |
+| `char` ← `int` | no | error: use an explicit cast |
+| `char` ← `float` | no | error: use an explicit cast |
+| `int` ← `char` | yes, sign-extends | no diagnostic |
+| `float` ← `int` | yes, widens | no diagnostic |
+| `float` ← `char` | yes, widens | no diagnostic |
 | any ← `void` | no | error |
 
 ### Variable Declaration and Assignment
