@@ -128,20 +128,23 @@ compile time
 **Key findings:**
 
 - **At `-O2`, execution speed tracks clang closely across all three
-  programs** (within ±8%) — expected, since `-O1`–`-O3` run LLVM's
+  programs** (within ±3%) — expected, since `-O1`–`-O3` run LLVM's
   genuine new-pass-manager pipeline (`mem2reg`, `instcombine`,
   `simplifycfg`, tail-call elimination, loop unrolling), not a
   hand-rolled approximation of one.
-- **At `-O0` the picture is more mixed**: `bubble_sort` runs 73% slower
+- **At `-O0` the picture is more mixed**: `bubble_sort` runs 63% slower
   unoptimized, while `fibonacci` runs 20% *faster* unoptimized than
   clang's own `-O0` output — a reminder that "no optimizer" doesn't mean
   "identical codegen," and that this is worth digging into further
   rather than papering over with an average.
 - **Compile speed is generally slower than clang** on this hardware, not
-  faster — up to ~19× on `bubble_sort -O2`. Real measured numbers, not
+  faster — up to ~14× on `bubble_sort -O2`. Real measured numbers, not
   the "N× faster" claim compiler-project READMEs traditionally reach
   for, since a hand-typed one would just go stale the next time the code
-  changes.
+  changes. `minic`'s own compile step also now links a small runtime
+  shim (`print_int`/`print_float`/`print_char`/`print_str`, replacing a
+  `printf` builtin) into every binary, which accounts for a few
+  milliseconds of the gap.
 - **Building this benchmark suite surfaced two real, pre-existing bugs**
   in `c-compiler` that nothing had caught before (the `-O2`/`int **` and
   nested-loop bugs described above), documented at the point of
@@ -153,23 +156,23 @@ compile time
 
 | Algorithm | Opt | minic | clang | Delta |
 |---|---|---:|---:|---|
-| Bubble sort (5,000 el., reverse-sorted) | `-O0` | 56.8 ms | 32.8 ms | 73% slower |
-| Bubble sort (5,000 el., reverse-sorted) | `-O2` | 8.7 ms | 9.4 ms | **7% faster** |
-| Fibonacci(39), naive recursive | `-O0` | 219.3 ms | 275.4 ms | **20% faster** |
-| Fibonacci(39), naive recursive | `-O2` | 157.6 ms | 161.6 ms | **2% faster** |
-| Sieve of Eratosthenes (N=40,000) | `-O0` | 2.7 ms | 2.5 ms | 8% slower |
+| Bubble sort (5,000 el., reverse-sorted) | `-O0` | 53.8 ms | 33.1 ms | 63% slower |
+| Bubble sort (5,000 el., reverse-sorted) | `-O2` | 8.2 ms | 8.4 ms | **2% faster** |
+| Fibonacci(39), naive recursive | `-O0` | 220.7 ms | 275.6 ms | **20% faster** |
+| Fibonacci(39), naive recursive | `-O2` | 156.8 ms | 162.4 ms | **3% faster** |
+| Sieve of Eratosthenes (N=40,000) | `-O0` | 2.8 ms | 2.6 ms | 8% slower |
 | Sieve of Eratosthenes (N=40,000) | `-O2` | — | 1.4 ms | known bug, see below |
 
 #### Compile time — the toolchain race
 
 | Algorithm | Opt | minic | clang | Delta |
 |---|---|---:|---:|---|
-| Bubble sort | `-O0` | 51.5 ms | 32.2 ms | 1.6× slower |
-| Bubble sort | `-O2` | 710.5 ms | 37.3 ms | 19.0× slower |
-| Fibonacci(39) | `-O0` | 41.9 ms | 31.6 ms | 1.3× slower |
-| Fibonacci(39) | `-O2` | 46.1 ms | 34.8 ms | 1.3× slower |
-| Sieve of Eratosthenes | `-O0` | 157.1 ms | 31.8 ms | 4.9× slower |
-| Sieve of Eratosthenes | `-O2` | — (hangs) | 41.6 ms | known bug, see below |
+| Bubble sort | `-O0` | 65.4 ms | 43.1 ms | 1.5× slower |
+| Bubble sort | `-O2` | 709.8 ms | 50.8 ms | 14.0× slower |
+| Fibonacci(39) | `-O0` | 55.6 ms | 43.4 ms | 1.3× slower |
+| Fibonacci(39) | `-O2` | 61.2 ms | 46.7 ms | 1.3× slower |
+| Sieve of Eratosthenes | `-O0` | 176.1 ms | 42.8 ms | 4.1× slower |
+| Sieve of Eratosthenes | `-O2` | — (hangs) | 55.6 ms | known bug, see below |
 
 ![Execution time: minic vs clang](testing/benchmarks/charts/execution_time.png)
 ![Compile time: minic vs clang](testing/benchmarks/charts/compile_time.png)
