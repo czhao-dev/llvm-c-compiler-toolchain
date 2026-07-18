@@ -156,6 +156,24 @@ int main() {
         std::filesystem::remove(path);
     }
 
+    // The fixed-arity print_int/print_float/print_char/print_str builtins
+    // (runtime/print_runtime.c, linked into every minic-produced binary)
+    // work standalone and alongside printf, which is still registered too.
+    {
+        const std::string path = writeTempSource("int main() {\n"
+                                                   "    print_int(42);\n"
+                                                   "    print_str(\"\\n\");\n"
+                                                   "    print_float(3.5);\n"
+                                                   "    print_str(\"\\n\");\n"
+                                                   "    print_char('X');\n"
+                                                   "    print_str(\"\\n\");\n"
+                                                   "    printf(\"%d still works\\n\", 7);\n"
+                                                   "    return 0;\n"
+                                                   "}\n");
+        assert(compileAndRun(path) == "42\n3.500000\nX\n7 still works\n");
+        std::filesystem::remove(path);
+    }
+
     return 0;
 #endif
 }
