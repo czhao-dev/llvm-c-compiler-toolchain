@@ -35,6 +35,7 @@ endif()
 
 add_executable(minic src/main.cpp)
 target_link_libraries(minic PRIVATE minic_core)
+target_include_directories(minic SYSTEM PRIVATE third_party)
 
 enable_testing()
 

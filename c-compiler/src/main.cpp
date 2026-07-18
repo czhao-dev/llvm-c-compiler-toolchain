@@ -11,6 +11,8 @@
 #include <string>
 #include <vector>
 
+#include "CLI11.hpp"
+
 namespace {
 
 struct Options {
@@ -53,47 +55,51 @@ int runSemanticAnalysis(const minic::ProgramNode &program) {
 }
 
 Options parseArgs(int argc, char **argv) {
+    CLI::App app{"minic"};
+    // Positional-input, unknown-option, and -O0..-O3 handling all stay
+    // hand-written on top of remaining(). -O0..-O3 specifically can't be
+    // registered as CLI11 flags: CLI11 requires single-dash names to be
+    // exactly one character (multi-character names need a double dash),
+    // so "-O0" is rejected at registration time -- and the differential-
+    // testing/benchmark harnesses invoke this CLI with that exact literal
+    // token, so the syntax can't change.
+    app.allow_extras(true);
+    app.set_help_flag(); // disable CLI11's own auto --help; -h/--help
+                          // below prints this tool's own usage text.
+
+    bool help = false;
+    app.add_flag("-h,--help", help);
+
     Options options;
-    for (int i = 1; i < argc; ++i) {
-        const std::string arg = argv[i];
-        if (arg == "--help" || arg == "-h") {
-            printUsage(std::cout);
-            std::exit(0);
-        }
-        if (arg == "--version") {
-            options.showVersion = true;
-            continue;
-        }
-        if (arg == "--emit-tokens") {
-            options.emitTokens = true;
-            continue;
-        }
-        if (arg == "--emit-ast") {
-            options.emitAst = true;
-            continue;
-        }
-        if (arg == "--emit-ir") {
-            options.emitIr = true;
-            continue;
-        }
+    app.add_flag("--version", options.showVersion);
+    app.add_flag("--emit-tokens", options.emitTokens);
+    app.add_flag("--emit-ast", options.emitAst);
+    app.add_flag("--emit-ir", options.emitIr);
+    app.add_option("-o", options.outputPath);
+
+    std::vector<std::string> args(argv + 1, argv + argc);
+    std::vector<std::string> reversed(args.rbegin(), args.rend()); // CLI11's vector overload consumes from the back
+    try {
+        app.parse(reversed);
+    } catch (const CLI::ParseError &e) {
+        throw std::runtime_error(e.what());
+    }
+
+    if (help) {
+        printUsage(std::cout);
+        std::exit(0);
+    }
+
+    for (const std::string &arg : app.remaining()) {
         if (arg == "-O0" || arg == "-O1" || arg == "-O2" || arg == "-O3") {
             options.optLevel = arg[2] - '0';
-            continue;
-        }
-        if (arg == "-o") {
-            if (i + 1 >= argc) {
-                throw std::runtime_error("-o requires an output path");
-            }
-            options.outputPath = argv[++i];
-            continue;
-        }
-        if (!arg.empty() && arg[0] == '-') {
+        } else if (!arg.empty() && arg[0] == '-') {
             throw std::runtime_error("unknown option: " + arg);
-        }
-        if (!options.inputPath.empty()) {
+        } else if (!options.inputPath.empty()) {
             throw std::runtime_error("multiple input files were provided");
+        } else {
+            options.inputPath = arg;
         }
-        options.inputPath = arg;
     }
     return options;
 }
