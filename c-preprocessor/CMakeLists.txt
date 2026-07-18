@@ -19,6 +19,7 @@ target_compile_features(pp_core PUBLIC cxx_std_20)
 
 add_executable(c-preprocess src/main.cpp)
 target_link_libraries(c-preprocess PRIVATE pp_core)
+target_include_directories(c-preprocess SYSTEM PRIVATE third_party)
 
 enable_testing()
 
