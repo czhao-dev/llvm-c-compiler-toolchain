@@ -10,6 +10,7 @@ int fib(int n) {
 }
 
 int main() {
-    printf("%d\n", fib(39));
+    print_int(fib(39));
+    print_str("\n");
     return 0;
 }

@@ -35,6 +35,12 @@ from common import binaries  # noqa: E402
 from common.proc import run  # noqa: E402
 
 PROGRAMS_DIR = Path(__file__).resolve().parent / "programs"
+# The print_int/print_float/print_char/print_str builtins these programs
+# call are real C, defined here; minic's own compileToNative() links this
+# file in automatically, and the clang side below does the same.
+RUNTIME_DIR = Path(__file__).resolve().parents[2] / "c-compiler" / "runtime"
+RUNTIME_SOURCE = RUNTIME_DIR / "print_runtime.c"
+RUNTIME_HEADER = RUNTIME_DIR / "print_runtime.h"
 OPT_LEVELS = ["-O0", "-O2"]
 
 COMPILE_WARMUP = 1
@@ -87,12 +93,14 @@ def minic_compile_cmd(minic_bin: Path, mc_path: Path, opt: str, out_path: Path) 
 
 
 def clang_compile_cmd(clang_bin: str, mc_path: Path, opt: str, out_path: Path) -> list:
-    # -std=c99 -Wno-implicit-function-declaration: MiniC examples call
-    # printf() with no #include <stdio.h>, see
-    # testing/differential/run_differential_tests.py for the same flags.
+    # -include gives clang the print_* builtins' prototypes (MiniC has no
+    # preprocessor, so the .mc source itself declares nothing), and the
+    # runtime source is compiled and linked in alongside the program --
+    # see testing/differential/run_differential_tests.py for the same
+    # mechanism.
     return [
-        clang_bin, "-x", "c", "-std=c99", "-Wno-implicit-function-declaration",
-        opt, str(mc_path), "-o", str(out_path),
+        clang_bin, "-x", "c", "-std=c99", "-include", str(RUNTIME_HEADER),
+        opt, str(mc_path), str(RUNTIME_SOURCE), "-o", str(out_path),
     ]
 
 

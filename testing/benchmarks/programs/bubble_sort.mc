@@ -27,6 +27,9 @@ int main() {
         pass = pass + 1;
     }
 
-    printf("%d %d\n", values[0], values[n - 1]);
+    print_int(values[0]);
+    print_str(" ");
+    print_int(values[n - 1]);
+    print_str("\n");
     return 0;
 }
