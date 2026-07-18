@@ -153,6 +153,7 @@ public:
         collectEnumConstants();
         collectSignatures();
         declarePrintf();
+        declarePrintBuiltins();
         declareFunctions();
 
         for (const auto &func : program_.functions) {
@@ -178,6 +179,10 @@ public:
 private:
     void collectSignatures() {
         functions_.emplace("printf", FunctionSignature{Type::Int, {}, true});
+        functions_.emplace("print_int", FunctionSignature{Type::Void, {Type::Int}, false});
+        functions_.emplace("print_float", FunctionSignature{Type::Void, {Type::Float}, false});
+        functions_.emplace("print_char", FunctionSignature{Type::Void, {Type::Char}, false});
+        functions_.emplace("print_str", FunctionSignature{Type::Void, {Type::Char.pointerTo()}, false});
         for (const auto &func : program_.functions) {
             FunctionSignature sig;
             sig.returnType = func->returnType;
@@ -283,6 +288,21 @@ private:
                                                    {llvm::PointerType::getUnqual(context_)},
                                                    true);
         llvm::Function::Create(printfType, llvm::Function::ExternalLinkage, "printf", module_.get());
+    }
+
+    // Declares the four fixed-arity print builtins as ordinary non-
+    // variadic externs -- no definitions here, since their bodies live in
+    // runtime/print_runtime.c, which compileToNative() links into every
+    // produced binary alongside the generated IR.
+    void declarePrintBuiltins() {
+        auto declareVoidFn = [this](const char *name, llvm::Type *paramType) {
+            auto *fnType = llvm::FunctionType::get(llvm::Type::getVoidTy(context_), {paramType}, false);
+            llvm::Function::Create(fnType, llvm::Function::ExternalLinkage, name, module_.get());
+        };
+        declareVoidFn("print_int", llvm::Type::getInt32Ty(context_));
+        declareVoidFn("print_float", llvm::Type::getFloatTy(context_));
+        declareVoidFn("print_char", llvm::Type::getInt8Ty(context_));
+        declareVoidFn("print_str", llvm::PointerType::getUnqual(context_));
     }
 
     void declareFunctions() {
@@ -1132,6 +1152,13 @@ private:
             if (from == Type::Int) {
                 return llvm::ConstantPointerNull::get(llvm::PointerType::getUnqual(context_));
             }
+            // A string literal's value is already a real i8* GEP pointer
+            // (see emitExpr's StringLitExprNode case) -- sema's matching
+            // String -> char* rule in checkAssignable makes this the only
+            // other pointer-target conversion that can reach here.
+            if (from == Type::String && to == Type::Char.pointerTo()) {
+                return value;
+            }
             throw std::runtime_error("invalid pointer conversion from '" + typeName(from) +
                                      "' to '" + typeName(to) + "' in codegen");
         }
@@ -1280,6 +1307,7 @@ void compileToNative(const ProgramNode &program, const std::string &outputPath,
 
     const std::string command = "clang -Wno-override-module -O" + std::to_string(optLevel) +
                                 " " + shellQuote(tempPath.string()) +
+                                " " + shellQuote(MINIC_RUNTIME_SOURCE) +
                                 " -o " + shellQuote(outputPath);
     const int status = std::system(command.c_str());
     std::filesystem::remove(tempPath);

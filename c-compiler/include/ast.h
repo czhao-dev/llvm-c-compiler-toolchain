@@ -17,7 +17,8 @@ enum class TypeKind {
     Void,
     // Pseudo-type assigned to string literals by the semantic analyzer.
     // MiniC has no first-class string type; string literals are only valid
-    // as printf arguments.
+    // as a printf/print_str argument (checkAssignable has a dedicated
+    // String -> char* rule for the latter).
     String,
     // A named struct or union (Type::aggregateName() holds the tag name).
     // There is no first-class "enum type": enum constants are resolved to

@@ -17,6 +17,8 @@ add_library(minic_core
 )
 target_include_directories(minic_core PUBLIC include)
 target_compile_features(minic_core PUBLIC cxx_std_20)
+target_compile_definitions(minic_core PRIVATE
+    MINIC_RUNTIME_SOURCE="${CMAKE_SOURCE_DIR}/runtime/print_runtime.c")
 
 if(MINIC_ENABLE_LLVM)
     find_package(LLVM CONFIG QUIET)

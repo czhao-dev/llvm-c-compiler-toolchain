@@ -111,6 +111,14 @@ std::vector<Diagnostic> SemanticAnalyzer::analyze(const ProgramNode &program) {
     // printf is a built-in: it accepts any argument types and returns int,
     // matching the C standard library signature.
     functions_.emplace("printf", FunctionSignature{Type::Int, {}, /*isVariadic=*/true});
+    // Fixed-arity print builtins (runtime/print_runtime.c) -- the
+    // idiomatic MiniC way to print, now that printf's free char->int/
+    // float->double argument promotion no longer aligns with strict
+    // conversion rules for a hypothetical fixed-signature printf.
+    functions_.emplace("print_int", FunctionSignature{Type::Void, {Type::Int}, false});
+    functions_.emplace("print_float", FunctionSignature{Type::Void, {Type::Float}, false});
+    functions_.emplace("print_char", FunctionSignature{Type::Void, {Type::Char}, false});
+    functions_.emplace("print_str", FunctionSignature{Type::Void, {Type::Char.pointerTo()}, false});
 
     collectTypeDeclarations(program);
     collectSignatures(program);
@@ -208,8 +216,9 @@ void SemanticAnalyzer::checkTypeIsValid(const SourceLocation &location, Type typ
 
 void SemanticAnalyzer::collectSignatures(const ProgramNode &program) {
     for (const auto &func : program.functions) {
-        if (func->name == "printf") {
-            error(func->location, "cannot redefine built-in function 'printf'");
+        if (func->name == "printf" || func->name == "print_int" || func->name == "print_float" ||
+            func->name == "print_char" || func->name == "print_str") {
+            error(func->location, "cannot redefine built-in function '" + func->name + "'");
             continue;
         }
         if (functions_.count(func->name) > 0) {
@@ -848,6 +857,13 @@ void SemanticAnalyzer::checkAssignable(const SourceLocation &location, Type targ
 
     if (target.isPointer() || value.isPointer()) {
         if (target.isPointer() && value == Type::Int && valueExpr && isNullPointerConstant(*valueExpr)) {
+            return;
+        }
+        // A string literal (the pseudo-type TypeKind::String) decays to
+        // char* -- codegen already produces a real i8* pointer for one;
+        // this lets sema recognize it where a char* is expected, e.g.
+        // print_str's parameter.
+        if (target == Type::Char.pointerTo() && value == Type::String) {
             return;
         }
         error(location, context + ": cannot convert '" + typeName(value) + "' to '" + typeName(target) + "'");
