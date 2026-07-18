@@ -99,6 +99,47 @@ int main() {
         expect(diagnostics[0].message.find("pt") != std::string::npos, "message should mention 'pt'");
     }
 
+    // flags_uninitialized_on_some_but_not_all_paths
+    //
+    // The old textual-pass implementation missed this: the first *textual*
+    // reference to `x` after its declaration is the write inside the `if`,
+    // so it never flagged this even though `x` is genuinely uninitialized
+    // whenever `c` is false. The CFG-based dataflow explores both branches
+    // and correctly finds the bad read on the false path.
+    {
+        std::vector<sa::Diagnostic> diagnostics =
+            check("int compute(int c) {\n    int x;\n    if (c) {\n        x = 1;\n    }\n    return x;\n}\n");
+        expect(diagnostics.size() == 1, "a variable uninitialized on some paths should be flagged");
+    }
+
+    // flags_read_only_reachable_when_condition_true
+    //
+    // The old implementation flagged this too, but only because the first
+    // textual reference after declaration happened to be the read inside
+    // the `if` -- coincidentally correct, not real branch analysis. The
+    // dataflow rewrite flags it for the right reason: the if-branch is a
+    // real path from the declaration to this read with no write on it.
+    {
+        std::vector<sa::Diagnostic> diagnostics = check(
+            "int compute(int c) {\n    int x;\n    if (c) {\n        printf(\"%d\", x);\n    } else {\n     "
+            "   x = 1;\n    }\n    return x;\n}\n");
+        expect(diagnostics.size() == 1, "a read reachable without an intervening write should be flagged");
+    }
+
+    // ignores_write_through_pointer_address
+    //
+    // A known, documented limitation carried over unchanged from the old
+    // implementation: `&x` is classified as a read (it isn't the left-hand
+    // side of `=`), so passing an uninitialized local by address to be
+    // filled in (e.g. by scanf) is still misclassified. This is a write-
+    // classification gap, not a control-flow one, so the CFG rewrite alone
+    // doesn't fix it -- see docs/SPEC.md.
+    {
+        std::vector<sa::Diagnostic> diagnostics =
+            check("int compute(void) {\n    int x;\n    scanf(\"%d\", &x);\n    return x;\n}\n");
+        expect(diagnostics.size() == 1, "write-through-pointer is still not recognized as initialization");
+    }
+
     std::cout << "sa006_uninitialized_variable_test: all checks passed\n";
     return 0;
 }

@@ -84,69 +84,82 @@ function. An `else if` continues the same `if` chain at the *same* depth
 same as any other nested block. Statements directly inside a `case` label
 are walked at the switch's own (incremented) depth, not one level deeper.
 
+SA004, SA005, and SA006 are all built on a common control-flow graph (CFG)
+module (`include/cfg.h`/`src/cfg.cpp`): a basic-block/edge graph is built
+per function body (handling if/else, while/do-while/for — including
+literal-`1`/`true` infinite-loop detection — switch/case fallthrough,
+break/continue, and goto/labels), and each rule is a traversal over that
+graph rather than an ad hoc recursive walk of the AST. This is a genuine
+improvement over each rule's previous AST-pattern-matching implementation,
+not just a refactor — see each section below for what specifically got
+more correct.
+
 ## SA004 — Missing return
 
 Skipped entirely for `void`-returning functions (a function returning
-`void*` is not considered void). A function's last statement must
-guarantee a value is returned for the function to pass:
+`void*` is not considered void). For every other function, its CFG's
+synthetic exit block is inspected: if exit has an incoming *Fallthrough*
+edge (as opposed to the *Unconditional* edge every `return` statement
+produces) from a block reachable from entry, the function can fall off the
+end without returning a value, and is flagged.
 
-- `return ...;` always exits.
-- `if`/`else` only exits if **both** branches always exit (recursively —
-  this also handles `else if` chains, since the `else` branch may itself
-  be another `if`). An `if` with no `else` never counts, since there's
-  always a fall-through path.
-- `while (1)` / `do { } while (1)` (literal `1` or `true` as the
-  condition, after trimming parens/spaces — not general constant folding)
-  count as always exiting, **provided** there's no `break` targeting that
-  same loop (a `break` inside a *nested* loop or `switch` doesn't count,
-  since it belongs to that inner construct instead).
-- Anything else (including a `for` loop, or a bare `switch`, as the last
-  statement) does not guarantee an exit.
+This is exactly equivalent to asking "is there a path from entry to the
+end of the function that never passes through a `return`?", computed
+structurally instead of by pattern-matching the last statement's shape.
+`while (1)`/`do { } while (1)` (literal `1`/`true` condition, trimmed of
+parens/spaces — not general constant folding) correctly has no Fallthrough
+edge out of the loop at all unless a `break` reaches past it, so an
+infinite loop without a reachable `break` is still recognized as always
+exiting, and one with a `break` is not — the same behavior as before, now
+falling out of the graph structure rather than a special-cased check.
 
 ## SA005 — Unreachable code
 
-For every block (a `compound_statement`, or the statements inside one
-`case` label, excluding the `case`'s own value expression), if any
-statement other than the last is a `return`/`break`/`continue`/`goto`,
-the very next statement is flagged as unreachable. Only the **first**
-such occurrence per block is reported — this rule doesn't try to flag
-every subsequent statement, just the first sign of dead code — though
-nested blocks are each checked independently, so dead code inside a
-nested `if`/loop is still caught.
+Any CFG block containing statements that is *not* reachable from the
+function's entry block is flagged, reported at its first statement.
+Because reachability is a real graph property instead of "is the previous
+statement in the same source block a `return`/`break`/`continue`/`goto`",
+this correctly generalizes to cases the old adjacent-statement scan
+couldn't see — for example, an entire `if`-branch dead after a prior
+unconditional `return` in a sibling branch, or a loop's own update clause
+when the body unconditionally `break`s before ever reaching it. The
+diagnostic message still names the specific keyword (`return`/`break`/
+`continue`/`goto`) when the unreachable block's first statement directly
+follows one of them in the same source block, falling back to a generic
+"Unreachable code" when the cause isn't that simple (e.g. dead code after
+an exhaustive `if`/`else`).
 
 ## SA006 — Uninitialized variable
 
 Considers the same population of locals as SA002 (a `declaration` inside a
 function body, name not starting with `_`), restricted to locals declared
-**without** an initializer. For each such local, this rule finds its first
-subsequent reference, in textual (preorder) source order, and classifies it
-as a write or a read:
-
-- A write is either the plain left-hand side of a bare `=` assignment
-  (`x = 1;`), or a `.`/`->` field access that is itself the plain
-  left-hand side of a bare `=` assignment (`pt.x = 1;` / `p->x = 1;` —
-  added specifically so the declare-then-initialize-field-by-field idiom
-  isn't flagged).
-- Anything else — a plain read, a function-call argument, a condition, an
-  address-of (`&x`), or a compound-assignment target like `x += 1` (which
-  also reads `x`) — is a read, and gets flagged.
+**without** an initializer. For each such local, this rule runs a forward
+"may be uninitialized" dataflow analysis over the CFG, starting at the
+declaration: a write is either the plain left-hand side of a bare `=`
+assignment (`x = 1;`), or a `.`/`->` field access that is itself the plain
+left-hand side of a bare `=` assignment (`pt.x = 1;` / `p->x = 1;` —
+so the declare-then-initialize-field-by-field idiom isn't flagged);
+anything else — a plain read, a function-call argument, a condition, an
+address-of (`&x`), or a compound-assignment target like `x += 1` (which
+also reads `x`) — is a read. The local is flagged at the first read
+reachable from its declaration via some path that never passes through a
+write first — an existential ("may", not "must") check, the same shape a
+real compiler's uninitialized-variable warning uses, so a variable that's
+only initialized on *some* branches is still correctly flagged even if a
+different branch happens to write it first in source order.
 
 If a local is never referenced again at all, SA006 does not flag it —
 that's SA002's job, not SA006's; the two rules never double-report the
 same declaration.
 
-**This is a single textual pass, not control-flow-sensitive dataflow
-analysis**, and that produces both false negatives and false positives by
-design, same as this project's other rules make deliberate, documented
-simplifications:
+Moving to real dataflow fixes a genuine class of false negative the old
+single-textual-pass version had — `int x; if (c) { x = 1; } return x;` is
+now correctly flagged (uninitialized whenever `c` is false), where the old
+implementation saw the write inside the `if` as the first textual
+reference and never flagged it. Two limitations carry over unchanged,
+since they're about how a *write* is classified rather than about control
+flow, which dataflow alone doesn't fix:
 
-- False negative: `int x; if (c) { x = 1; } printf("%d", x);` is not
-  flagged, because the first textual reference to `x` is the write inside
-  the `if`, even though `x` is genuinely uninitialized when `c` is false.
-  SA006 does not reason about which branch executes or whether a write
-  dominates a later read.
-- False positive: `int x; if (c) { printf("%d", x); } else { x = 1; }` is
-  flagged, even though this is only a real bug when `c` is true.
 - False positive: `int x; scanf("%d", &x); use(x);` is flagged — `&x` is
   classified as a read (it isn't the left-hand side of `=`), even though
   it's actually being filled in by `scanf`. Passing an uninitialized local
