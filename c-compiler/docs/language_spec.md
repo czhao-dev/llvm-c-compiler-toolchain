@@ -153,9 +153,13 @@ statement.
 
 **var_decl** — declares a local variable in the current scope. The
 initializer is required for `float` when a value is needed immediately; it
-is optional for all types. A declaration without an initializer leaves the
-variable uninitialized; reading it before assignment is undefined behavior,
-as in C.
+is optional for all types. A declaration without an initializer is
+zero-initialized (`0`/`0.0`/`'\0'` as appropriate, or an all-zero
+struct/union/array): the generated code always stores the type's default
+value into the variable's slot before any read of it is reachable, so
+reading it before an explicit assignment deterministically observes that
+default rather than being undefined behavior as in C. This is a deliberate
+MiniC divergence from ISO C, made for predictability and testability.
 
 ```c
 int count = 0;
@@ -674,7 +678,10 @@ variable assignment.
 The expression type must be assignable to the enclosing function's declared
 return type. A `void` function may use a bare `return;` or fall off the
 end of its body. A non-`void` function that reaches the end of its body
-without a `return` is undefined behavior, as in C.
+without a `return` deterministically returns the return type's default
+value (`0`/`0.0`/`'\0'`) rather than this being undefined behavior as in C —
+a deliberate MiniC divergence from ISO C, made for predictability and
+testability.
 
 ### Condition Expressions
 
