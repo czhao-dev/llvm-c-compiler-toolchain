@@ -66,6 +66,24 @@ std::string compileAndRun(const std::string &sourcePath) {
     return output;
 }
 
+// Writes `source` to a fresh temp .mc file and returns its path, so a test
+// case can exercise a small inline program the same way compileAndRun
+// exercises a checked-in examples/*.mc file.
+std::string writeTempSource(const std::string &source) {
+    const std::string tempTemplate =
+        (std::filesystem::temp_directory_path() / "minic_codegen_test_src_XXXXXX").string();
+    std::vector<char> buf(tempTemplate.begin(), tempTemplate.end());
+    buf.push_back('\0');
+    const int fd = mkstemp(buf.data());
+    assert(fd != -1);
+    close(fd);
+    const std::string path(buf.data());
+    std::ofstream out(path);
+    out << source;
+    out.close();
+    return path;
+}
+
 } // namespace
 
 int main() {
@@ -91,6 +109,36 @@ int main() {
     assert(fizz.substr(0, 2) == "1\n");
     assert(fizz.find("FizzBuzz\n") != std::string::npos);
     assert(!fizz.empty() && fizz.back() == '\n');
+
+    // A non-void function that falls off the end without a `return`
+    // deterministically returns the type's default value (0), rather than
+    // this being undefined behavior as in C -- see language_spec.md's
+    // "Return Statements" section.
+    {
+        const std::string path = writeTempSource("int noReturn() {\n"
+                                                   "    int x = 1;\n"
+                                                   "}\n"
+                                                   "int main() {\n"
+                                                   "    printf(\"%d\\n\", noReturn());\n"
+                                                   "    return 0;\n"
+                                                   "}\n");
+        assert(compileAndRun(path) == "0\n");
+        std::filesystem::remove(path);
+    }
+
+    // A local declared without an initializer is zero-initialized, so
+    // reading it before any write deterministically observes 0 rather than
+    // this being undefined behavior as in C -- see language_spec.md's
+    // "var_decl" section.
+    {
+        const std::string path = writeTempSource("int main() {\n"
+                                                   "    int x;\n"
+                                                   "    printf(\"%d\\n\", x);\n"
+                                                   "    return 0;\n"
+                                                   "}\n");
+        assert(compileAndRun(path) == "0\n");
+        std::filesystem::remove(path);
+    }
 
     return 0;
 #endif
