@@ -17,6 +17,7 @@ add_library(clnk_core
     src/cli.cpp
 )
 target_include_directories(clnk_core PUBLIC include)
+target_include_directories(clnk_core SYSTEM PRIVATE third_party)
 target_compile_features(clnk_core PUBLIC cxx_std_20)
 
 add_executable(c-link src/main.cpp)

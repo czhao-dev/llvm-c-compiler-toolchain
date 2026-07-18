@@ -1,9 +1,11 @@
 #include "cli.h"
 
+#include <algorithm>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 
+#include "CLI11.hpp"
 #include "diagnostic.h"
 #include "elf_writer.h"
 #include "linker.h"
@@ -36,48 +38,50 @@ std::uint64_t parseAddress(const std::string &flag, const std::string &value) {
     }
 }
 
-std::string nextValue(const std::vector<std::string> &args, std::size_t &i, const std::string &flag) {
-    if (i + 1 >= args.size()) {
-        throw CliError(flag + " requires a value");
-    }
-    return args[++i];
-}
-
 } // namespace
 
 LinkArgs parseArgs(const std::vector<std::string> &args) {
-    LinkArgs result;
+    CLI::App app{"c-link"};
+    // Numeric address parsing (decimal or 0x-prefixed hex) and positional-
+    // input/unknown-flag handling stay hand-written on top of CLI11's
+    // tokenizing so behavior (and the fact every error here maps to exit
+    // code 2 via CliError) is unchanged; CLI11 natively handles both
+    // `--flag value` and `--flag=value` forms for every option below.
+    app.allow_extras(true);
+    app.set_help_flag(); // disable CLI11's own auto --help; -h/--help
+                          // below just sets a bool instead of throwing.
 
-    for (std::size_t i = 0; i < args.size(); ++i) {
-        const std::string &arg = args[i];
-        if (arg == "-h" || arg == "--help") {
-            result.showHelp = true;
-        } else if (arg == "-o" || arg == "--output") {
-            result.output = nextValue(args, i, arg);
-        } else if (arg.rfind("--output=", 0) == 0) {
-            result.output = arg.substr(std::string("--output=").size());
-        } else if (arg == "--entry") {
-            result.entry = nextValue(args, i, arg);
-        } else if (arg.rfind("--entry=", 0) == 0) {
-            result.entry = arg.substr(std::string("--entry=").size());
-        } else if (arg == "--base-text") {
-            result.textBase = parseAddress(arg, nextValue(args, i, arg));
-        } else if (arg.rfind("--base-text=", 0) == 0) {
-            result.textBase = parseAddress("--base-text", arg.substr(std::string("--base-text=").size()));
-        } else if (arg == "--base-data") {
-            result.dataBase = parseAddress(arg, nextValue(args, i, arg));
-        } else if (arg.rfind("--base-data=", 0) == 0) {
-            result.dataBase = parseAddress("--base-data", arg.substr(std::string("--base-data=").size()));
-        } else if (!arg.empty() && arg[0] == '-' && arg != "-") {
-            throw CliError("unknown flag: " + arg);
-        } else {
-            result.inputs.push_back(arg);
-        }
+    LinkArgs result;
+    app.add_flag("-h,--help", result.showHelp);
+    app.add_option("-o,--output", result.output);
+    app.add_option("--entry", result.entry);
+
+    std::string textBaseValue;
+    std::string dataBaseValue;
+    app.add_option("--base-text", textBaseValue);
+    app.add_option("--base-data", dataBaseValue);
+
+    try {
+        std::vector<std::string> reversed(args.rbegin(), args.rend());
+        app.parse(reversed);
+    } catch (const CLI::ParseError &e) {
+        throw CliError(e.what());
     }
 
     if (result.showHelp) {
         return result;
     }
+
+    if (!textBaseValue.empty()) result.textBase = parseAddress("--base-text", textBaseValue);
+    if (!dataBaseValue.empty()) result.dataBase = parseAddress("--base-data", dataBaseValue);
+
+    for (const std::string &arg : app.remaining()) {
+        if (!arg.empty() && arg[0] == '-' && arg != "-") {
+            throw CliError("unknown flag: " + arg);
+        }
+        result.inputs.push_back(arg);
+    }
+
     if (result.inputs.empty()) {
         throw CliError("no input files");
     }
