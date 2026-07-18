@@ -41,8 +41,7 @@ compilation (`#ifdef`/`#if`/...), or token concatenation/stringification
 [docs/SPEC.md](docs/SPEC.md) for the exact scope and grammar.
 
 `c-compiler`, the sibling subproject in this monorepo, explicitly
-treats preprocessing as a non-goal (see its
-[ROADMAP.md](../c-compiler/docs/ROADMAP.md)) on the grounds that real
+treats preprocessing as a non-goal on the grounds that real
 toolchains split `cpp` out as its own pass ahead of the compiler proper.
 `c-preprocessor` is that separate pass.
 
@@ -317,5 +316,5 @@ This project is licensed under the MIT License — see [LICENSE](LICENSE) for th
 
 **This monorepo**
 - [`c-compiler`](../c-compiler) — the sibling subproject this
-  tool complements; its `docs/ROADMAP.md` explains why preprocessing is
-  explicitly out of its scope.
+  tool complements; preprocessing is explicitly out of its scope, on the
+  grounds that real toolchains split `cpp` out as its own pass.
