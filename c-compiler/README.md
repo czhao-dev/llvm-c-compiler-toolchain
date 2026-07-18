@@ -187,9 +187,16 @@ calls, and `return` statements. Recursive functions are supported because
 the IR generator handles forward references correctly.
 
 **Built-in I/O**
-`printf` is available as a special built-in that maps to the C standard
-library `printf` via an `extern` declaration in the generated IR.
-This is enough to write programs that produce visible output.
+`print_int`, `print_float`, `print_char`, and `print_str` are built-in,
+fixed-arity print functions — `printf` is deliberately not a builtin,
+since as a variadic function it would bypass the strict argument type-
+checking every other function call goes through (see
+[Implicit Conversions](docs/language_spec.md#implicit-conversions)).
+Each maps to a real C definition in
+[runtime/print_runtime.c](runtime/print_runtime.c), linked into every
+minic-produced binary automatically. None of them append a trailing
+newline — call `print_str("\n")` explicitly, same as C's `printf` would
+need `\n` spelled out in the format string.
 
 ---
 
@@ -208,7 +215,8 @@ int fibonacci(int n) {
 int main() {
     int i = 0;
     while (i < 10) {
-        printf("%d\n", fibonacci(i));
+        print_int(fibonacci(i));
+        print_str("\n");
         i = i + 1;
     }
     return 0;
@@ -230,7 +238,8 @@ float sum_of_squares(int n) {
 }
 
 int main() {
-    printf("%f\n", sum_of_squares(100));
+    print_float(sum_of_squares(100));
+    print_str("\n");
     return 0;
 }
 ```

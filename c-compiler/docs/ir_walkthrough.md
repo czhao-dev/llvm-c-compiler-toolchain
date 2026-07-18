@@ -20,7 +20,8 @@ int fibonacci(int n) {
 int main() {
     int i = 0;
     while (i < 10) {
-        printf("%d\n", fibonacci(i));
+        print_int(fibonacci(i));
+        print_str("\n");
         i = i + 1;
     }
     return 0;
@@ -130,11 +131,18 @@ No warnings are emitted for this function.
 source_filename = "examples/fibonacci.mc"
 target triple = "arm64-apple-darwin25.5.0"
 
-; Format string for printf — stored as a global constant.
-@0 = private unnamed_addr constant [4 x i8] c"%d\0A\00", align 1
+; The literal text between print_str calls — just "\n" here, since
+; print_int/print_float/print_char never append one themselves.
+@0 = private unnamed_addr constant [2 x i8] c"\0A\00", align 1
 
-; printf is an external variadic function — declared but not defined.
-declare i32 @printf(ptr, ...)
+; The four print builtins are declared but not defined here — their real
+; definitions live in runtime/print_runtime.c, linked in at compile time
+; by compileToNative()'s clang invocation. All four are ordinary,
+; non-variadic externs (unlike printf, which this replaced).
+declare void @print_int(i32)
+declare void @print_float(float)
+declare void @print_char(i8)
+declare void @print_str(ptr)
 
 define i32 @fibonacci(i32 %n) {
 entry:
@@ -185,14 +193,15 @@ while.cond:
   br i1 %booltmp, label %while.body, label %while.end
 
 while.body:
-  ; printf("%d\n", fibonacci(i));
+  ; print_int(fibonacci(i)); print_str("\n");
   %i2      = load i32, ptr %i, align 4
   %calltmp = call i32 @fibonacci(i32 %i2)
-  %calltmp3 = call i32 (ptr, ...) @printf(ptr @0, i32 %calltmp)
+  call void @print_int(i32 %calltmp)
+  call void @print_str(ptr @0)
 
   ; i = i + 1;
-  %i4      = load i32, ptr %i, align 4
-  %addtmp  = add i32 %i4, 1
+  %i3      = load i32, ptr %i, align 4
+  %addtmp  = add i32 %i3, 1
   store i32 %addtmp, ptr %i, align 4
   br label %while.cond             ; back edge
 
@@ -221,15 +230,18 @@ Key things to notice in the unoptimized IR:
 source_filename = "examples/fibonacci.mc"
 target triple = "arm64-apple-darwin25.5.0"
 
-@0 = private unnamed_addr constant [4 x i8] c"%d\0A\00", align 1
+@0 = private unnamed_addr constant [2 x i8] c"\0A\00", align 1
 
-; nofree/nounwind/local_unnamed_addr — attributes added by the optimizer
-; signaling this function has no side effects on memory (beyond the call itself).
-declare noundef i32 @printf(ptr noundef readonly captures(none), ...) local_unnamed_addr #0
+; local_unnamed_addr — attribute added by the optimizer since nothing
+; takes this declaration's address. Only the two builtins main actually
+; calls survive at -O2 (print_float/print_char are unreferenced and get
+; dropped entirely).
+declare void @print_int(i32) local_unnamed_addr
+declare void @print_str(ptr) local_unnamed_addr
 
 ; memory(none): the optimizer proved fibonacci reads/writes no memory
 ; (all its "variables" are now SSA registers after mem2reg).
-define i32 @fibonacci(i32 %n) local_unnamed_addr #1 {
+define i32 @fibonacci(i32 %n) local_unnamed_addr #0 {
 entry:
   ; mem2reg eliminated all alloca/store/load pairs — %n is used directly.
   ; instcombine simplified 'n <= 1' (zext+icmp) into a single 'icmp slt n, 2'.
@@ -264,20 +276,25 @@ if.end:
 
 ; main is fully unrolled: the while (i < 10) loop over fibonacci(0)..fibonacci(9)
 ; is replaced with 10 straight-line tail calls. No loop overhead, no branch.
-define noundef i32 @main() local_unnamed_addr #0 {
+; Every print_int/print_str pair also becomes a `tail call` — the callee
+; is void-returning and does nothing after the call, so LLVM can reuse
+; main's own stack frame for it.
+define noundef i32 @main() local_unnamed_addr {
 entry:
   %calltmp   = tail call i32 @fibonacci(i32 0)
-  %calltmp3  = tail call i32 (ptr, ...) @printf(ptr nonnull dereferenceable(1) @0, i32 %calltmp)
+  tail call void @print_int(i32 %calltmp)
+  tail call void @print_str(ptr nonnull @0)
   %calltmp.1 = tail call i32 @fibonacci(i32 1)
-  %calltmp3.1 = tail call i32 (ptr, ...) @printf(ptr nonnull dereferenceable(1) @0, i32 %calltmp.1)
+  tail call void @print_int(i32 %calltmp.1)
+  tail call void @print_str(ptr nonnull @0)
   ; ... (calls for i=2 through i=9 follow the same pattern)
   %calltmp.9 = tail call i32 @fibonacci(i32 9)
-  %calltmp3.9 = tail call i32 (ptr, ...) @printf(ptr nonnull dereferenceable(1) @0, i32 %calltmp.9)
+  tail call void @print_int(i32 %calltmp.9)
+  tail call void @print_str(ptr nonnull @0)
   ret i32 0
 }
 
-attributes #0 = { nofree nounwind }
-attributes #1 = { nofree nosync nounwind memory(none) }
+attributes #0 = { nofree nosync nounwind memory(none) }
 ```
 
 What the `-O2` pipeline changed and why:
@@ -326,7 +343,8 @@ float sum_of_squares(int n) {
 }
 
 int main() {
-    printf("%f\n", sum_of_squares(100));
+    print_float(sum_of_squares(100));
+    print_str("\n");
     return 0;
 }
 ```
@@ -371,10 +389,12 @@ FuncDef sum_of_squares -> float
 source_filename = "examples/sum_of_squares.mc"
 target triple = "arm64-apple-darwin25.5.0"
 
-; Format string for printf — "%f\n" stored as a 4-byte global.
-@0 = private unnamed_addr constant [4 x i8] c"%f\0A\00", align 1
+@0 = private unnamed_addr constant [2 x i8] c"\0A\00", align 1
 
-declare i32 @printf(ptr, ...)
+declare void @print_int(i32)
+declare void @print_float(float)
+declare void @print_char(i8)
+declare void @print_str(ptr)
 
 define float @sum_of_squares(i32 %n) {
 entry:
@@ -426,10 +446,10 @@ while.end:
 
 define i32 @main() {
 entry:
-  ; sum_of_squares returns float; printf receives it as double (C ABI vararg rule).
-  %calltmp      = call float @sum_of_squares(i32 100)
-  %printfdouble = fpext float %calltmp to double   ; float → double for vararg
-  %calltmp1     = call i32 (ptr, ...) @printf(ptr @0, double %printfdouble)
+  ; print_float(sum_of_squares(100)); print_str("\n");
+  %calltmp = call float @sum_of_squares(i32 100)
+  call void @print_float(float %calltmp)
+  call void @print_str(ptr @0)
   ret i32 0
 }
 ```
@@ -443,9 +463,11 @@ Key things to notice:
   stored into a float variable.
 - `total + fi * fi` becomes `fmul float` then `fadd float` — the floating-point
   variants of multiply and add. Integer arithmetic would use `mul`/`add` instead.
-- `printf` receives `sum_of_squares`'s `float` result as a `double` because
-  the C ABI requires float varargs to be promoted to double. MiniC emits an
-  `fpext float → double` instruction before the call.
+- `print_float` takes a real `float` parameter directly — no promotion
+  instruction before the call. This is simpler than the printf-based
+  version this replaced, which needed an `fpext float → double` first: the
+  C ABI requires *variadic* float arguments to be promoted to double, but
+  `print_float` is an ordinary fixed-arity function with no such rule.
 
 **Generated IR (optimized, `-O2`)**
 
@@ -454,14 +476,16 @@ Key things to notice:
 source_filename = "examples/sum_of_squares.mc"
 target triple = "arm64-apple-darwin25.5.0"
 
-@0 = private unnamed_addr constant [4 x i8] c"%f\0A\00", align 1
+@0 = private unnamed_addr constant [2 x i8] c"\0A\00", align 1
 
-; nofree nounwind — no memory side effects on the printf declaration.
-declare noundef i32 @printf(ptr noundef readonly captures(none), ...) local_unnamed_addr #0
+; Only the two builtins main actually calls survive at -O2 (print_int/
+; print_char are unreferenced and get dropped entirely).
+declare void @print_float(float) local_unnamed_addr
+declare void @print_str(ptr) local_unnamed_addr
 
 ; memory(none): optimizer proved sum_of_squares touches no memory
 ; (all locals promoted to SSA registers by mem2reg).
-define float @sum_of_squares(i32 %n) local_unnamed_addr #1 {
+define float @sum_of_squares(i32 %n) local_unnamed_addr #0 {
 entry:
   ; If n < 1, the while condition is immediately false — skip straight to exit.
   %letmp.not13 = icmp slt i32 %n, 1
@@ -492,7 +516,7 @@ while.end:
 
 ; main is fully inlined at -O2: sum_of_squares(100) is unrolled into
 ; a single loop that runs directly inside main, with no call overhead.
-define noundef i32 @main() local_unnamed_addr #0 {
+define noundef i32 @main() local_unnamed_addr {
 entry:
   br label %while.body.i
 
@@ -507,13 +531,13 @@ while.body.i:
   br i1 %letmp.not.i, label %sum_of_squares.exit, label %while.body.i
 
 sum_of_squares.exit:
-  %printfdouble = fpext float %addtmp.i to double
-  %calltmp1 = tail call i32 (ptr, ...) @printf(ptr nonnull dereferenceable(1) @0, double %printfdouble)
+  ; print_float takes the accumulated float directly -- no fpext needed.
+  tail call void @print_float(float %addtmp.i)
+  tail call void @print_str(ptr nonnull @0)
   ret i32 0
 }
 
-attributes #0 = { nofree nounwind }
-attributes #1 = { nofree norecurse nosync nounwind memory(none) }
+attributes #0 = { nofree norecurse nosync nounwind memory(none) }
 ```
 
 What the `-O2` pipeline changed and why:

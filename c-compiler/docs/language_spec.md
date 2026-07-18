@@ -84,7 +84,8 @@ functions.
 int square(int n) { return n * n; }
 
 int main() {
-    printf("%d\n", square(7));
+    print_int(square(7));
+    print_str("\n");
     return 0;
 }
 ```
@@ -94,7 +95,7 @@ a braced body block.
 
 ```c
 int add(int a, int b) { return a + b; }
-void greet(char c) { printf("%c\n", c); }
+void greet(char c) { print_char(c); print_str("\n"); }
 ```
 
 **aggregate_decl / field_decl** — a `struct` or `union` tag name and a
@@ -209,7 +210,7 @@ stray `1 + 2;`) is a parse error rather than a silent no-op — MiniC assumes
 you meant an assignment.
 
 ```c
-printf("%d\n", fibonacci(i));
+print_int(fibonacci(i));
 i++;
 --count;
 ```
@@ -224,11 +225,11 @@ if (n <= 1) {
 }
 
 if (x > 0) {
-    printf("positive\n");
+    print_str("positive\n");
 } else if (x < 0) {
-    printf("negative\n");
+    print_str("negative\n");
 } else {
-    printf("zero\n");
+    print_str("zero\n");
 }
 ```
 
@@ -237,7 +238,8 @@ the condition is zero.
 
 ```c
 while (i < 10) {
-    printf("%d\n", i);
+    print_int(i);
+    print_str("\n");
     i = i + 1;
 }
 ```
@@ -277,14 +279,14 @@ not supported).
 ```c
 switch (n) {
 case 0:
-    printf("zero\n");
+    print_str("zero\n");
     break;
 case 1:
 case 2:
-    printf("one or two\n");
+    print_str("one or two\n");
     break;
 default:
-    printf("other\n");
+    print_str("other\n");
 }
 ```
 
@@ -370,7 +372,7 @@ args         ::= expression ("," expression)*
 
 `int <= 1`, `n - 1`, `a && b`, `!done`, and `fibonacci(n - 1)` are all
 examples of expressions covered by this grammar. String literals only
-appear as call arguments (e.g., the format string passed to `printf`).
+appear as call arguments (e.g. the message passed to `print_str`).
 
 A leading `&` or `*` in an operand position is the unary address-of or
 dereference operator rather than the binary `&&`/`*` operators — the parser
@@ -650,8 +652,8 @@ arithmetic context where that idiom is as central as in real C).
 
 ```c
 int i = 0;
-printf("%d\n", i++);  // prints 0, i is now 1
-printf("%d\n", ++i);  // prints 2, i is now 2
+print_int(i++);  // prints 0, i is now 1
+print_int(++i);  // prints 2, i is now 2
 ```
 
 ### Compound Assignment (+=, -=, *=, /=, &=, |=, ^=, <<=, >>=)
@@ -696,16 +698,33 @@ assignable to the target (see the table above). The same rule applies to
 `assign_stmt`.
 
 ```c
-int x = 3.7;    // warning: narrowing float → int; x = 3
-float y = 5;    // ok: int 5 widens to float 5.0
+int x = 3.7;        // error: narrowing float -> int requires an explicit cast
+int x2 = (int)3.7;  // ok: x2 = 3
+float y = 5;         // ok: int 5 widens to float 5.0
 ```
 
 ### Function Calls
 
-Argument count must exactly match the parameter count (except for the
-built-in `printf`, which is variadic). Each argument's type must be
-assignable to the corresponding parameter type under the same rules as
-variable assignment.
+Argument count must exactly match the parameter count — there are no
+variadic functions in MiniC, built-in or otherwise (see
+[Built-ins](#built-ins) below). Each argument's type must be assignable to
+the corresponding parameter type under the same rules as variable
+assignment.
+
+### Built-ins
+
+`print_int(int)`, `print_float(float)`, `print_char(char)`, and
+`print_str(char*)` are the only built-in functions — MiniC's sole
+mechanism for producing output, since it has no standard library. Each is
+a fixed-arity, non-variadic function backed by a real C definition in
+`runtime/print_runtime.c`, linked into every produced binary. None appends
+a trailing newline; callers spell one out explicitly via `print_str("\n")`
+where needed, the same way a `printf` format string would need `\n`
+written out. A string literal (the `String` pseudo-type — see
+[Base Types](#base-types)) is assignable to `print_str`'s `char*`
+parameter as a special case in `checkAssignable`, since MiniC has no
+general string type or implicit array-to-pointer decay for literals
+otherwise.
 
 ### Return Statements
 
