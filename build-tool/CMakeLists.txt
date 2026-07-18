@@ -12,6 +12,7 @@ add_library(bt_core
     src/planner.cpp
 )
 target_include_directories(bt_core PUBLIC include)
+target_include_directories(bt_core SYSTEM PRIVATE third_party)
 target_compile_features(bt_core PUBLIC cxx_std_20)
 
 add_executable(build-tool src/main.cpp)
