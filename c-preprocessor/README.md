@@ -55,7 +55,7 @@ c-preprocessor/
 ├── LICENSE
 ├── CMakeLists.txt
 ├── scripts/
-│   └── configure.sh          ← cmake -S . -B build -G Ninja (no external deps)
+│   └── configure.sh          ← cmake -S . -B build -G Ninja (no external deps at configure time)
 ├── include/
 │   ├── token.h                ← PPToken/PPTokenKind/HideSet
 │   ├── diagnostics.h          ← PreprocessorError

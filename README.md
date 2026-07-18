@@ -53,7 +53,7 @@ orchestrates the others rather than sitting in the linear flow:
 
 ## Highlights
 
-**c-preprocessor** — A four-stage pipeline (comment stripper → directive/include line-driver → tokenizer → hide-set-based macro rescanner) built on `libpp_core`, with zero external dependencies. `#include` resolves double-quoted paths relative to the *including* file's directory, then against `-I` search directories in order; circular includes are detected and reported with the full chain, while diamond includes are intentionally left un-deduplicated, since there are no include guards. Recursive macro expansion (a macro's replacement can reference another macro, e.g. `TWO_PI` → `PI * 2` → `3 * 2`) terminates correctly on self-referential and mutually recursive definitions via the standard "blue paint" hide-set algorithm — every token produced by expanding macro `M` carries `M` in its hide set, so an identifier already in its own hide set is emitted literally instead of looping forever, matching real `cpp` behavior on inputs like `#define X X + 1` rather than erroring out. Redefining a macro is last-wins with no diagnostic, a deliberate simplification versus strict C's identical-redefinition requirement, and `#undef` gets correct late-binding for free since macro bodies are stored as raw, unexpanded tokens. Comment stripping replaces a multi-line block comment with the same number of newlines it contained, so line numbers in diagnostics stay accurate straight through it. Function-like macros, conditional compilation (`#ifdef`/`#if`), and `##`/`#` are explicit non-goals — each is a hard `file:line` compile error rather than a silent no-op, and the CLI's own exit codes (`0` success, `1` preprocessing/I/O error, `2` usage error) follow the same convention as every other tool in this toolchain. All 7 test suites pass, including a byte-for-byte golden-output comparison against a multi-file example and a subprocess-level exercise of the CLI.
+**c-preprocessor** — A four-stage pipeline (comment stripper → directive/include line-driver → tokenizer → hide-set-based macro rescanner) built on `libpp_core`, with no external dependencies at configure time (CLI11 is vendored in-tree for the CLI layer, not fetched). `#include` resolves double-quoted paths relative to the *including* file's directory, then against `-I` search directories in order; circular includes are detected and reported with the full chain, while diamond includes are intentionally left un-deduplicated, since there are no include guards. Recursive macro expansion (a macro's replacement can reference another macro, e.g. `TWO_PI` → `PI * 2` → `3 * 2`) terminates correctly on self-referential and mutually recursive definitions via the standard "blue paint" hide-set algorithm — every token produced by expanding macro `M` carries `M` in its hide set, so an identifier already in its own hide set is emitted literally instead of looping forever, matching real `cpp` behavior on inputs like `#define X X + 1` rather than erroring out. Redefining a macro is last-wins with no diagnostic, a deliberate simplification versus strict C's identical-redefinition requirement, and `#undef` gets correct late-binding for free since macro bodies are stored as raw, unexpanded tokens. Comment stripping replaces a multi-line block comment with the same number of newlines it contained, so line numbers in diagnostics stay accurate straight through it. Function-like macros, conditional compilation (`#ifdef`/`#if`), and `##`/`#` are explicit non-goals — each is a hard `file:line` compile error rather than a silent no-op, and the CLI's own exit codes (`0` success, `1` preprocessing/I/O error, `2` usage error) follow the same convention as every other tool in this toolchain. All 7 test suites pass, including a byte-for-byte golden-output comparison against a multi-file example and a subprocess-level exercise of the CLI.
 
 **c-linter** — Five rules (`CL001`–`CL005`) covering snake_case naming, line length (80 cols default), trailing whitespace, magic numbers in comparisons, and K&R/Allman brace-style consistency, built on a small hand-written lexer that's deliberately never shared with `c-compiler`, keeping the subproject independent per this repo's convention. The lexer is tolerant by design — unterminated comments/literals and unmodeled punctuation fall through to a generic token type rather than erroring, since a linter has to process real-world, possibly-broken C it doesn't fully model — and keyword recognition is deliberately minimal too: only `if`/`while` are distinct tokens, every other keyword lexes as a plain identifier, which is safe because every real C keyword is lowercase with no embedded uppercase, so CL001 can never misfire on one. Naming (CL001) is a pure token-level check with no symbol table, so every *occurrence* of a badly-named identifier is flagged, not just its declaration; magic-number detection (CL004) exempts `0`, `1`, and `-1` as common sentinel values and only looks forward from the comparison operator, not backward; brace-style checking (CL005) matches the closing parenthesis of an `if`/`while` condition through nested parens against the placement of the following brace. Line length and trailing whitespace run as a raw-text pass before tokenization even happens. All 8 test suites pass. Reporting only — no auto-fixing, no indentation tracking, and no semantic checks (that boundary belongs to `c-static-analyzer`) — with CI-friendly exit codes (`0`/`1`/`2`).
 
@@ -203,27 +203,27 @@ job summary and uploaded artifact.
 Each project builds independently — see its README for details.
 
 ```bash
-# c-preprocessor (C++20/CMake, no external dependencies)
+# c-preprocessor (C++20/CMake, no external dependencies at configure time; CLI11 vendored in-tree)
 cd c-preprocessor && ./scripts/configure.sh && cmake --build build
 ctest --test-dir build --output-on-failure
 
-# c-linter (C++20/CMake, no external dependencies)
+# c-linter (C++20/CMake, no external dependencies at configure time; CLI11 vendored in-tree)
 cd c-linter && ./scripts/configure.sh && cmake --build build
 ctest --test-dir build --output-on-failure
 
-# C static analyzer (C++20/CMake, fetches tree-sitter + tree-sitter-c via FetchContent)
+# C static analyzer (C++20/CMake, fetches tree-sitter + tree-sitter-c via FetchContent; CLI11 vendored in-tree)
 cd c-static-analyzer && ./scripts/configure.sh && cmake --build build
 ctest --test-dir build --output-on-failure
 
-# MiniC compiler (C++20/CMake, requires LLVM 17+)
+# MiniC compiler (C++20/CMake, requires LLVM 17+; CLI11 vendored in-tree)
 cd c-compiler && ./scripts/configure.sh && cmake --build build
 ctest --test-dir build --output-on-failure
 
-# c-linker (C++20/CMake, clang required on PATH to build test/example fixtures)
+# c-linker (C++20/CMake, clang required on PATH to build test/example fixtures; CLI11 vendored in-tree)
 cd c-linker && ./scripts/configure.sh && cmake --build build
 ctest --test-dir build --output-on-failure
 
-# build-tool (C++20/CMake, no external dependencies)
+# build-tool (C++20/CMake, no external dependencies at configure time; CLI11 vendored in-tree)
 cd build-tool && ./scripts/configure.sh && cmake --build build
 ctest --test-dir build --output-on-failure
 ```
