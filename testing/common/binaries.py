@@ -29,13 +29,5 @@ def minic() -> Path:
     return _binary("c-compiler", "build/minic")
 
 
-def c_static_analyzer() -> Path:
-    return _binary("c-static-analyzer", "build/c-static-analyzer")
-
-
-def c_lint() -> Path:
-    return _binary("c-linter", "build/c-lint")
-
-
 def c_link() -> Path:
     return _binary("c-linker", "build/c-link")

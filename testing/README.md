@@ -21,19 +21,6 @@ cmake --build build` — nothing in `testing/` builds anything itself.
   python3 testing/differential/run_differential_tests.py
   ```
 
-- **`invalid/`** — snapshot-tests `c-lint` and `c-static-analyzer`'s
-  default diagnostic output against frozen `<fixture>.expected.txt`
-  files, generalizing the golden-fixture convention already used by
-  `c-static-analyzer/tests/golden_test.cpp` into a small suite spanning
-  both tools.
-
-  ```bash
-  python3 testing/invalid/run_negative_tests.py
-
-  # after deliberately changing a rule's message wording:
-  python3 testing/invalid/run_negative_tests.py --update
-  ```
-
 - **`benchmarks/`** — toolchain compile-speed and execution-speed
   comparison between `minic` and `clang`, using
   [hyperfine](https://github.com/sharkdp/hyperfine) (a hard dependency

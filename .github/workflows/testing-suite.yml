@@ -8,10 +8,6 @@ on:
       - "c-preprocessor/include/**"
       - "c-compiler/src/**"
       - "c-compiler/include/**"
-      - "c-static-analyzer/src/**"
-      - "c-static-analyzer/include/**"
-      - "c-linter/src/**"
-      - "c-linter/include/**"
       - "c-linker/src/**"
       - "c-linker/include/**"
       - "build-tool/src/**"
@@ -24,10 +20,6 @@ on:
       - "c-preprocessor/include/**"
       - "c-compiler/src/**"
       - "c-compiler/include/**"
-      - "c-static-analyzer/src/**"
-      - "c-static-analyzer/include/**"
-      - "c-linter/src/**"
-      - "c-linter/include/**"
       - "c-linker/src/**"
       - "c-linker/include/**"
       - "build-tool/src/**"
@@ -66,24 +58,11 @@ jobs:
           cd c-compiler
           ./scripts/configure.sh
           cmake --build build
-      - name: Build c-static-analyzer
-        run: |
-          cd c-static-analyzer
-          ./scripts/configure.sh
-          cmake --build build
-      - name: Build c-linter
-        run: |
-          cd c-linter
-          ./scripts/configure.sh
-          cmake --build build
       - name: Build c-linker
         run: |
           cd c-linker
           ./scripts/configure.sh
           cmake --build build
-
-      - name: Run negative/snapshot tests
-        run: python3 testing/invalid/run_negative_tests.py
 
       - name: Run differential tests
         run: python3 testing/differential/run_differential_tests.py

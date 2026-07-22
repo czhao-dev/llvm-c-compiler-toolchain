@@ -1,3 +1,0 @@
-fail_snake_case.c:1: warning: identifier 'computeTotal' should be snake_case [CL001]
-fail_snake_case.c:1: warning: identifier 'itemCount' should be snake_case [CL001]
-fail_snake_case.c:2: warning: identifier 'itemCount' should be snake_case [CL001]
