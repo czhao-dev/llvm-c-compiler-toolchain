@@ -5,7 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](../LICENSE)
 [![CI](https://github.com/czhao-dev/llvm-c-compiler-toolchain/actions/workflows/build-tool.yml/badge.svg)](https://github.com/czhao-dev/llvm-c-compiler-toolchain/actions/workflows/build-tool.yml)
 
-> A dependency-graph-aware build tool implementing core GNU Make semantics — built from scratch in C++20 as the third piece of a C toolchain alongside a [MiniC compiler](../c-compiler) and a [C static analyzer](../c-static-analyzer). Variable expansion, pattern rules, and parallel execution are explicit non-goals for this small implementation; see [Supported Features](#supported-features) for the exact boundary.
+> A dependency-graph-aware build tool implementing core GNU Make semantics — built from scratch in C++20 alongside a [MiniC compiler](../c-compiler) as part of this C toolchain. Variable expansion, pattern rules, and parallel execution are explicit non-goals for this small implementation; see [Supported Features](#supported-features) for the exact boundary.
 
 It parses a Makefile into target/prerequisite rules, resolves them into a dependency graph (with cycle detection and memoization so a shared dependency is built exactly once), checks mtime-based staleness to skip up-to-date targets, and runs outstanding recipes serially in topological order.
 

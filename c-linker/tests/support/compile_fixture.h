@@ -39,8 +39,7 @@ inline std::filesystem::path compileNamedFixture(const std::string &name, const 
 }
 
 // A fresh, process-unique scratch directory under the system temp dir, for
-// compiled fixtures and linker output -- mirrors the scratch-directory
-// pattern c-static-analyzer's golden_test/cli_test already use.
+// compiled fixtures and linker output.
 inline std::filesystem::path makeScratchDir(const std::string &label) {
     auto dir = std::filesystem::temp_directory_path() /
                ("clnk_" + label + "_" + std::to_string(static_cast<long>(::getpid())));
